@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const brandCompititionMappingController = require("../conrollers/brandCompititionMappingController");
+const brandCompititionMappingController = require("../controllers/brandCompititionMappingController");
 router
     .route("/")
     .get()

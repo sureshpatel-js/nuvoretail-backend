@@ -1,5 +1,5 @@
 const express = require("express");
-const onbordingCrawledDataController = require("../conrollers/onbordingCrawledDataController");
+const onbordingCrawledDataController = require("../controllers/onbordingCrawledDataController");
 const router = express.Router();
 
 router
