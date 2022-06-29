@@ -2,7 +2,7 @@ const bcrypt = require("bcrypt");
 
 exports.generateOtpAndTime = async () => {
     const otp = Math.floor(Math.random() * 1000000);
-    const hashedOtp = await bcrypt.hash(`${otp}`, 10);
+    const hashedOtp = await bcrypt.hash(`${otp}`, 4);
     const time = new Date().getTime() + 600000;
     return {
         otp,
