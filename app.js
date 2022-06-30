@@ -1,16 +1,25 @@
 const express = require('express');
 const app = express();
+const cookieParser = require('cookie-parser');
+
 const port = process.env.PORT || 3000;
 //Router Imports
 const onbordingCrawledDataRoute = require("./routers/onbordingCrawledDataRoute");
 const clientMonthlyConfigRoute = require("./routers/clientMonthlyConfigRoute");
+const userRoute = require("./routers/userRoute");
+const authRoute = require("./routers/authRoute");
 //db connection
 const mongodbConnection = require("./db/mongodb");
 mongodbConnection();
+app.use(cookieParser());
 app.use(express.json());
-
-app.use("/clientMonthlyConfig", clientMonthlyConfigRoute)
+app.use("/auth", authRoute);
+app.use("/user", userRoute);
+app.use("/clientMonthlyConfig", clientMonthlyConfigRoute);
 app.use("/onbordingCrawledData", onbordingCrawledDataRoute);
+app.use("/cookies", (req, res) => {
+    console.log(req.cookies);
+})
 app.use((err, req, res, next) => {
     const { status, message } = err;
     res.status(status).json({

@@ -1,27 +1,25 @@
-const sendMail = async () => {
-    "use strict";
-    const nodemailer = require("nodemailer");
-
-    // async..await is not allowed in global scope, must use a wrapper
-    async function main() {
-   
-        let transporter = nodemailer.createTransport({
-            host: "gmail",
-            port: 587,
-            secure: false, // true for 465, false for other ports
-            auth: {
-                user: "sureshpatel.js@gmail.com", // generated ethereal user
-                pass: "patel@0421", // generated ethereal password
-            },
-        });
-
+const nodemailer = require("nodemailer");
+const sendMail = async (sendTo, subject, text, html) => {
+    let transporter = nodemailer.createTransport({
+        host: "smtp-mail.outlook.com", // hostname
+        secureConnection: false, // TLS requires secureConnection to be false
+        port: 587, // port for secure SMTP
+        tls: {
+            ciphers: 'SSLv3'
+        },
+        auth: {
+            user: 'enlytical@nuvoretail.com',
+            pass: 'Nuvo@123'
+        }
+    });
+    try {
         // send mail with defined transport object
         let info = await transporter.sendMail({
-            from: '"Fred Foo 👻" <sureshpatel.js@gmail.com>', // sender address
-            to: "sureshpatel.js@gmail.com", // list of receivers
-            subject: "Hello ✔", // Subject line
-            text: "Hello world?", // plain text body
-            html: "<b>Hello world?</b>", // html body
+            from: '<enlytical@nuvoretail.com>', // sender address
+            to: sendTo, // list of receivers
+            subject: subject, // Subject line
+            text: text, // plain text body
+            html: html, // html body
         });
 
         console.log("Message sent: %s", info.messageId);
@@ -30,9 +28,14 @@ const sendMail = async () => {
         // Preview only available when sending through an Ethereal account
         console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
         // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
+
+        return true;
+    } catch (error) {
+        console.log(error);
+        return false;
     }
 
-    main().catch(console.error);
+
 }
 
 module.exports = sendMail;
