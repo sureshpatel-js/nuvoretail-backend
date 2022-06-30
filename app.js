@@ -20,7 +20,7 @@ app.use("/onbordingCrawledData", onbordingCrawledDataRoute);
 app.use("/cookies", (req, res) => {
     console.log(req.cookies);
 })
-app.get("Hello", (req, res) => {
+app.get("/Hello", (req, res) => {
     res.status(200).json({
         status: "success",
         data: {
