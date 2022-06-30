@@ -18,7 +18,7 @@ const ClientMonthlyConfigSchema = new Schema({
         type: Array
     },
     created_by: {
-        type: Schema.Types.ObjectId
+        type: Schema.Types.ObjectId 
     },
     stage_one_created_date: {
         type: Date
