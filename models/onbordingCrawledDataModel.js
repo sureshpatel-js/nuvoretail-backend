@@ -1,29 +1,26 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const OnbordingCrolledDataSchema = new Schema({
-    user_id: {
+    brand_id: {
         type: Schema.Types.ObjectId
     },
     platform_code: {
         type: String
     },
-    product_code: {
+    platform: {
         type: String
     },
-    brand_name: {
-        type: String
-    },
-    pname: {
+    product_name: {
         type: String
     },
     sp: {
-        type: Number
+        type: String
     },
     pack_size: {
         type: String
     },
     mrp: {
-        type: Number
+        type: String
     },
     seller: {
         type: String
@@ -32,7 +29,7 @@ const OnbordingCrolledDataSchema = new Schema({
         type: String
     },
     sub_cat: {
-        tye: String
+        type: String
     },
     created_at: {
         type: Date

@@ -1,18 +1,34 @@
 const Joi = require("joi");
 
-exports.validateClientMonthlyConfigStageOne = async (body) => {
-    const schema = Joi.object({
-        user_id: Joi.string().required(),
-        product_list: Joi.array().items(Joi.object({
-            product_code: Joi.string().required(),
-            priority: Joi.boolean().required()
-        })).required(),
-        authorized_seller_list: Joi.array().items(Joi.object({
-            seller_name: Joi.string().required(),
-            fba_model: Joi.boolean().required()
-        })).required(),
-        stage_one_created_date: Joi.date().required(),
-    });
+exports.validateClientMonthlyConfigStageOne = async (body, reqType) => {
+    let schema;
+    if (reqType === "post") {
+        schema = Joi.object({
+            user_id: Joi.string().required(),
+            product_list: Joi.array().items(Joi.object({
+                product_code: Joi.string().required(),
+                priority: Joi.boolean().required()
+            })).required(),
+            authorized_seller_list: Joi.array().items(Joi.object({
+                seller_name: Joi.string().required(),
+                fba_model: Joi.boolean().required()
+            })).required(),
+            stage_one_created_date: Joi.date().required(),
+        });
+    } else if (reqType === "put") {
+        schema = Joi.object({
+            user_id: Joi.string().required(),
+            product_list: Joi.array().items(Joi.object({
+                product_code: Joi.string().required(),
+                priority: Joi.boolean().required()
+            })).required(),
+            authorized_seller_list: Joi.array().items(Joi.object({
+                seller_name: Joi.string().required(),
+                fba_model: Joi.boolean().required()
+            })).required(),
+            stage_one_updated_date: Joi.date().required(),
+        });
+    }
     try {
         const value = await schema.validateAsync(body);
         return { status: true, body: value };

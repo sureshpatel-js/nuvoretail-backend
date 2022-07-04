@@ -1,5 +1,7 @@
-//Client controller
+const mongoose = require("mongoose");
 const UserModel = require("../models/userModel");
+const CompanyModel = require("../models/companyModel");
+const BrandModel = require("../models/brandModel");
 const { validateClientAdminSignUp } = require("../validate/validateUser");
 const { generateOtpAndTime } = require("../utils/auth/otp");
 const AppError = require("../utils/errorHandling/AppError");
@@ -8,7 +10,6 @@ const { UNABLE_TO_SEND_OTP,
     UNABLE_TO_CREATE_USER,
     USER_ALREADY_EXIST
 } = require("../constants/errorMessageConstants/userControllerError");
-
 exports.clientAdminSignUp = async (req, res, next) => {
     const value = await validateClientAdminSignUp(req.body);
     if (!value.status) {
@@ -21,21 +22,49 @@ exports.clientAdminSignUp = async (req, res, next) => {
     if (findUser && findUser.email_verified === true) {
         return next(new AppError(409, USER_ALREADY_EXIST));
     }
+
+
+    const session = await mongoose.startSession();
     try {
-        const { first_name, email } = req.body;
+        session.startTransaction();
+        const { first_name, last_name, email, company_name, brand_name } = req.body;
         const { otp, hashedOtp, otpCreatedAt } = await generateOtpAndTime();
-        console.log(otp, hashedOtp, otpCreatedAt)
         const { body } = req;
 
         let newUser;
         //If user does not exist create one and send otp
         if (!findUser) {
-            newUser = await UserModel.create({
-                ...body,
+            newUser = await UserModel.create([{
+                first_name,
+                last_name,
+                email,
                 hashed_otp: hashedOtp,
                 otp_created_at: otpCreatedAt,
                 email_verified: false
-            });
+            }], { session });
+
+            const newUserId = newUser[0]._id;
+            const newCompany = await CompanyModel.create([{
+                company_name,
+                created_by: newUserId,
+            }], { session })
+
+            const newCompanyId = newCompany[0]._id;
+
+            const newBrand = await BrandModel.create([{
+                brand_name,
+                created_by: newUserId,
+                company_id: newCompanyId
+            }], { session })
+
+            const updatedUser = await UserModel.findByIdAndUpdate(
+                newUserId,
+                {
+                    company_id: newCompanyId
+                },
+                { session }
+            )
+
             //If user exist and email is not verified, then send otp and update user.
         } else if (findUser && findUser.email_verified === false) {
             newUser = await UserModel.findByIdAndUpdate(findUser._id, {
@@ -53,6 +82,8 @@ exports.clientAdminSignUp = async (req, res, next) => {
             return next(new AppError(500, UNABLE_TO_SEND_OTP));
         }
 
+        await session.commitTransaction();
+
         res.status(201).json({
             message: `Check your email: ${email} for OTP.`,
             user: {
@@ -63,8 +94,9 @@ exports.clientAdminSignUp = async (req, res, next) => {
         });
     } catch (error) {
         console.log(error);
+        await session.abortTransaction();
         return next(new AppError(500, UNABLE_TO_CREATE_USER));
     }
-
+    session.endSession();
 }
 
