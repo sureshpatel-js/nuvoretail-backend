@@ -23,13 +23,11 @@ exports.clientAdminSignUp = async (req, res, next) => {
         return next(new AppError(409, USER_ALREADY_EXIST));
     }
 
-
     const session = await mongoose.startSession();
     try {
         session.startTransaction();
         const { first_name, last_name, email, company_name, brand_name } = req.body;
         const { otp, hashedOtp, otpCreatedAt } = await generateOtpAndTime();
-        const { body } = req;
 
         let newUser;
         //If user does not exist create one and send otp
@@ -70,7 +68,9 @@ exports.clientAdminSignUp = async (req, res, next) => {
             newUser = await UserModel.findByIdAndUpdate(findUser._id, {
                 hashed_otp: hashedOtp,
                 otp_created_at: otpCreatedAt,
-            });
+            },
+                { session }
+            );
         }
         const sendMailStatus = await sendMail(
             email,
