@@ -13,7 +13,9 @@ const UserSchema = new Schema({
     email: {
         type: String,
     },
-
+    company_id: {
+        type: Schema.Types.ObjectId
+    },
     contact_num: {
         type: String,
     },
@@ -49,6 +51,11 @@ const UserSchema = new Schema({
         type: Boolean
     }
 })
+
+// UserSchema.pre("save", function (next) {
+//     this.company_id = this._id;
+//     next();
+// })
 
 const User = mongoose.model("user", UserSchema);
 module.exports = User;

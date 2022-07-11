@@ -4,6 +4,8 @@ exports.validateClientAdminSignUp = async (body) => {
     const schema = Joi.object({
         first_name: Joi.string().required(),
         last_name: Joi.string().required(),
+        company_name:Joi.string().required(),
+        brand_name:Joi.string().required(),
         email: Joi.string()
             .required()
             .email({

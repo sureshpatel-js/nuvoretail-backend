@@ -20,10 +20,16 @@ const ClientMonthlyConfigSchema = new Schema({
     created_by: {
         type: Schema.Types.ObjectId 
     },
-    stage_one_created_date: {
+    stage_one_created_at: {
         type: Date
     },
-    stage_two_created_date: {
+    stage_one_updated_at: {
+        type: Date
+    },
+    stage_two_created_at: {
+        type: Date
+    },
+    stage_two_updated_at: {
         type: Date
     },
     udpdated_at: {

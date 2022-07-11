@@ -5,8 +5,9 @@ router
     .route("/")
     .get(clientMonthlyConfigController.getClientMonthlyConfig);
 router
-    .route("/stageOne")
-    .post(clientMonthlyConfigController.createClientMonthlyConfigStageOne);
+    .route("/stageOne/:id?")
+    .post(clientMonthlyConfigController.createClientMonthlyConfigStageOne)
+    .put(clientMonthlyConfigController.updateClientMonthlyConfigStageOne);
 router
     .route("/stageTwo/:id")
     .put(clientMonthlyConfigController.createClientMonthlyConfigStageTwo);

@@ -1,5 +1,7 @@
 const OnbordingCrawledDataModel = require("../models/onbordingCrawledDataModel");
-const { validateOnbordingCrawledData } = require("../validate/validateOnbordingCrawledData");
+const { validateOnbordingCrawledData,
+    validateManyOnbordingCrawledData
+} = require("../validate/validateOnbordingCrawledData");
 const AppError = require("../utils/errorHandling/AppError");
 exports.getOnbordingCrawledData = async (req, res, next) => {
     try {
@@ -42,3 +44,24 @@ exports.createOnbordingCrawledData = async (req, res, next) => {
         });
     }
 };
+
+exports.createManyOnbordingCrawledData = async (req, res, next) => {
+    const value = await validateManyOnbordingCrawledData(req.body);
+    if (!value.status) {
+        return next(new AppError(400, value.message));
+    }
+    try {
+        const { onbordingCrawledData } = req.body;
+        const crolledData = await OnbordingCrawledDataModel.insertMany(onbordingCrawledData);
+        res.status(201).json({
+            status: "success",
+            data: {
+                message: "Documents insereted successfully."
+            } 
+        }); 
+    } catch (error) {
+        return next(new AppError(400, error));
+        
+    }
+};
+

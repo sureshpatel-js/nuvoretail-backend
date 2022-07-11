@@ -8,4 +8,8 @@ router
     .get(authController.protectRoute, authController.restrictTo("client-admin"), onbordingCrawledDataController.getOnbordingCrawledData)
     .post(onbordingCrawledDataController.createOnbordingCrawledData);
 
+router
+    .route("/insertMany")
+    .post(onbordingCrawledDataController.createManyOnbordingCrawledData);
+
 module.exports = router;

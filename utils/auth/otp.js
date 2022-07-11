@@ -14,7 +14,6 @@ exports.generateOtpAndTime = async () => {
 exports.checkOtp = async (obj) => {
     const { otp, hashedOtp, otpCreatedAt } = obj;
     const validateTime = new Date().getTime() <= otpCreatedAt;
-    console.log(new Date().getTime(), otpCreatedAt)
     if (!validateTime) {
         return {
             status: false,
