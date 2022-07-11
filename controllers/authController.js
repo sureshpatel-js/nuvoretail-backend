@@ -94,7 +94,7 @@ exports.logIn = async (req, res, next) => {
 
         }
         const { token } = tokenObj;
-        res.cookie("authToken", token, { maxAge: 26000000 });
+        res.cookie("authToken", token, { maxAge: 260000000 });
         res.status(200).json({
             status: "success",
             data: {
