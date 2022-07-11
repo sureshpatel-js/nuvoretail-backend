@@ -94,11 +94,12 @@ exports.logIn = async (req, res, next) => {
 
         }
         const { token } = tokenObj;
-        res.cookie("authToken", token, { maxAge: 260000000 });
+        // res.cookie("authToken", token, { maxAge: 26000000 });
         res.status(200).json({
             status: "success",
             data: {
                 message: "You are logged in successfully.",
+                token,
                 user: {
                     email: user.email,
                     first_name: user.first_name,
@@ -154,12 +155,12 @@ exports.generateOtp = async (req, res, next) => {
 };
 
 exports.protectRoute = async (req, res, next) => {
-    const { authToken } = req.cookies;
-    if (!authToken) {
+    const { token } = req.headers;
+    if (!token) {
         return next(new AppError(401, "You have been logged out, please login again."));
 
     }
-    const value = await verifyJwt(authToken);
+    const value = await verifyJwt(token);
     if (!value.status) {
         return next(new AppError(401, value.message));
 
