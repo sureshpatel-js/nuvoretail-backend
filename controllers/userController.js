@@ -38,7 +38,8 @@ exports.clientAdminSignUp = async (req, res, next) => {
                 email,
                 hashed_otp: hashedOtp,
                 otp_created_at: otpCreatedAt,
-                email_verified: false
+                email_verified: false,
+                user_type: "client-admin"
             }], { session });
 
             const newUserId = newUser[0]._id;
