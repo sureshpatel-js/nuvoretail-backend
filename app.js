@@ -11,7 +11,7 @@ const authRoute = require("./routers/authRoute");
 //db connection
 const mongodbConnection = require("./db/mongodb");
 mongodbConnection();
-app.use(core());
+app.use(cors());
 app.use(cookieParser());
 app.use(express.json());
 app.use("/auth", authRoute);
