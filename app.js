@@ -22,10 +22,11 @@ app.use("/cookies", (req, res) => {
     console.log(req.cookies);
 })
 app.get("/Hello", (req, res) => {
+    res.cookie("testAuthToken", "iamduplicatetoken", { maxAge: 260000000 });
     res.status(200).json({
         status: "success",
         data: {
-            message: "Hello from server."
+            message: "Hello from server, how are you? Have a good day."
         }
     })
 })
