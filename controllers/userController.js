@@ -2,8 +2,9 @@ const mongoose = require("mongoose");
 const UserModel = require("../models/userModel");
 const CompanyModel = require("../models/companyModel");
 const BrandModel = require("../models/brandModel");
-const { validateClientAdminSignUp } = require("../validate/validateUser");
+const { validateClientAdminSignUp, validateCreateClientSideUser } = require("../validate/validateUser");
 const { generateOtpAndTime } = require("../utils/auth/otp");
+const { generateRandomPassword } = require("../utils/auth/password");
 const AppError = require("../utils/errorHandling/AppError");
 const sendMail = require("../utils/nodemailer/nodemailer");
 const { UNABLE_TO_SEND_OTP,
@@ -99,5 +100,66 @@ exports.clientAdminSignUp = async (req, res, next) => {
         return next(new AppError(500, UNABLE_TO_CREATE_USER));
     }
     session.endSession();
+}
+
+exports.createClientSideUser = async (req, res, next) => {
+    const value = await validateCreateClientSideUser(req.body);
+    if (!value.status) {
+        return next(new AppError(400, value.message));
+
+    }
+    //Step 1 Find user.
+    const findUser = await UserModel.findOne({ email: req.body.email });
+    //If user exist and email is verified, then return to login page.
+    if (findUser && findUser.email_verified === true) {
+        return next(new AppError(409, USER_ALREADY_EXIST));
+    }
+    const { company_id } = req.user;
+    const session = await mongoose.startSession();
+    try {
+        session.startTransaction();
+        const { first_name, last_name, user_type, email } = req.body;
+        const plainTextPassword = generateRandomPassword();
+        const hashPassword = await bcrypt.hash(plainTextPassword, 10);
+        const password_updated_at = new Date().getTime();
+        let newUser = await UserModel.create([{
+            first_name,
+            last_name,
+            email,
+            hashed_password: hashPassword,
+            password_updated_at,
+            hashed_otp: null,
+            otp_created_at: null,
+            email_verified: true,
+            user_type
+        }], { session });
+
+        const sendMailStatus = await sendMail(
+            email,
+            "OTP Verification.",
+            ``,
+            `Hi ${first_name}, please use this OTP to verify your email address.</br> <b>${otp}</b> `,
+        );
+        if (!sendMailStatus) {
+            return next(new AppError(500, UNABLE_TO_SEND_OTP));
+        }
+
+        await session.commitTransaction();
+
+        res.status(201).json({
+            message: `Check your email: ${email} for OTP.`,
+            user: {
+                first_name: newUser.first_name,
+                last_name: newUser.last_name,
+                email,
+            },
+        });
+    } catch (error) {
+        console.log(error);
+        await session.abortTransaction();
+        return next(new AppError(500, UNABLE_TO_CREATE_USER));
+    }
+    session.endSession();
+
 }
 
