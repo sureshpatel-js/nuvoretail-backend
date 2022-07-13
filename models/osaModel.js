@@ -11,13 +11,13 @@ const OsaSchema = new Schema({
         type: String
     },
     sp: {
-        type: String
+        type: Number
     },
     rating: {
-        type: String
+        type: Number
     },
-    status_text: {
-        type: String
+    status: {
+        type: Boolean
     },
     seller: {
         type: String
@@ -53,7 +53,7 @@ const OsaSchema = new Schema({
         type: String
     },
     delivery_days: {
-        type: String
+        type: Number
     },
     location: {
         type: String
