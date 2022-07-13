@@ -38,13 +38,13 @@ const OsaSchema = new Schema({
         type: String
     },
     main_cat_rank: {
-        type: String
+        type: Number
     },
     sub_cat: {
         type: String
     },
     sub_cat_rank: {
-        type: String
+        type: Number
     },
     defaultasin: {
         type: String
@@ -53,7 +53,7 @@ const OsaSchema = new Schema({
         type: String
     },
     delivery_days: {
-        type: Number
+        type: String
     },
     location: {
         type: String
