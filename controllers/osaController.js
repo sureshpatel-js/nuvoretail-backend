@@ -1,8 +1,8 @@
 const OsaMoldel = require("../models/osaModel");
-
+const AppError = require("../utils/errorHandling/AppError");
 exports.createOneOsa = async (req, res, next) => {
     try {
-        const newOsa = await OsaMoldel.create()
+        const newOsa = await OsaMoldel.create(req.body)
         res.status(201).json({
             status: "success",
             data: {
@@ -11,12 +11,7 @@ exports.createOneOsa = async (req, res, next) => {
         })
     } catch (error) {
         console.log(error);
-        res.status(400).json({
-            status: "fail",
-            data: {
-
-            }
-        })
+        return next(new AppError(400, ""));
     }
 
 }

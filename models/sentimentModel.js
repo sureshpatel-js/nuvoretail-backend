@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
-const OsaSchema = new Schema({
+const SentimentSchema = new Schema({
     time_stamp: {
         type: Date
     },
@@ -10,16 +10,16 @@ const OsaSchema = new Schema({
     platform: {
         type: String
     },
-    sp: {
-        type: String
-    },
     rating: {
         type: String
     },
-    status_text: {
+    no_of_rating: {
         type: String
     },
-    seller: {
+    no_of_review: {
+        type: String
+    },
+    cust_rating: {
         type: String
     },
     screenshot_url: {
@@ -37,33 +37,29 @@ const OsaSchema = new Schema({
     main_cat: {
         type: String
     },
-    main_cat_rank: {
+    comment_date: {
         type: String
     },
-    sub_cat: {
+    comment_title: {
         type: String
     },
-    sub_cat_rank: {
+    comment: {
         type: String
     },
-    defaultasin: {
+    verified: {
         type: String
     },
-    expiry_date: {
+    ptype: {
         type: String
     },
-    delivery_days: {
+    sentiment: {
         type: String
     },
-    location: {
+    preprocessed_comments: {
         type: String
     },
-    prod_url: {
+    cust_name: {
         type: String
-    },
-    created_at: {
-        type: Date,
-        default: Date.now(),
     }
 })
 
@@ -72,8 +68,18 @@ const OsaSchema = new Schema({
 //     next();
 // })
 
-const Osa = mongoose.model("osa", OsaSchema);
-module.exports = Osa;
+const Sentiment = mongoose.model("sentiment", SentimentSchema);
+module.exports = Sentiment;
+
+
+
+
+
+
+
+
+
+
 
 
 

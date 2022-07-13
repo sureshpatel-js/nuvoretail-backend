@@ -8,6 +8,9 @@ const onbordingCrawledDataRoute = require("./routers/onbordingCrawledDataRoute")
 const clientMonthlyConfigRoute = require("./routers/clientMonthlyConfigRoute");
 const userRoute = require("./routers/userRoute");
 const authRoute = require("./routers/authRoute");
+const osaRoute = require("./routers/osaRoute");
+const sentimentRoute = require("./routers/sentimentRoute");
+const brandHealthRoute = require("./routers/brandHealthRoute")
 //db connection
 const mongodbConnection = require("./db/mongodb");
 mongodbConnection();
@@ -18,6 +21,12 @@ app.use("/auth", authRoute);
 app.use("/user", userRoute);
 app.use("/clientMonthlyConfig", clientMonthlyConfigRoute);
 app.use("/onbordingCrawledData", onbordingCrawledDataRoute);
+app.use("/osa", osaRoute);
+app.use("/sentiment", sentimentRoute);
+app.use("/brandHealth", brandHealthRoute)
+
+
+
 app.use("/cookies", (req, res) => {
     console.log(req.cookies);
 })

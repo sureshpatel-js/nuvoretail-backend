@@ -1,8 +1,8 @@
-const BrandHealthMoldel = require("../models/brandHealthModel");
+const SentimentModel = require("../models/sentimentModel");
 const AppError = require("../utils/errorHandling/AppError");
-exports.createOneBrandHealth = async (req, res, next) => {
+exports.createOneSentiment = async (req, res, next) => {
     try {
-        const newBrandHealth = await BrandHealthMoldel.create(req.body)
+        const newSentiment = await SentimentModel.create(req.body);
         res.status(201).json({
             status: "success",
             data: {
@@ -11,7 +11,6 @@ exports.createOneBrandHealth = async (req, res, next) => {
         })
     } catch (error) {
         console.log(error);
-        return next(new AppError(400, ""));
+        return next(new AppError(500, UNABLE_TO_CREATE_USER));
     }
-
 }
