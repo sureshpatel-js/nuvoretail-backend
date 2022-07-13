@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const OsaSchema = new Schema({
+    brand_id: {
+        type: Schema.Types.ObjectId
+    },
     time_stamp: {
         type: Date
     },
