@@ -1,6 +1,9 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const BrandHealthSchema = new Schema({
+    brand_id: {
+        type: Schema.Types.ObjectId
+    },
     time_stamp: {
         type: Date
     },
@@ -14,22 +17,22 @@ const BrandHealthSchema = new Schema({
         type: String
     },
     rank: {
-        type: String
+        type: Number
     },
     rating: {
-        type: String
+        type: Number
     },
     review_type: {
         type: String
     },
     no_of_rating: {
-        type: String
+        type: Number
     },
     no_of_review: {
-        type: String
+        type: Number
     },
     cust_rating: {
-        type: String
+        type: Number
     },
     comment_date: {
         type: String
@@ -44,10 +47,10 @@ const BrandHealthSchema = new Schema({
         type: String
     },
     mosthelpful_votes: {
-        type: String
+        type: Number
     }
 })
 
-const BrandHealth = mongoose.model("brandHealth",BrandHealthSchema);
+const BrandHealth = mongoose.model("brandHealth", BrandHealthSchema);
 module.exports = BrandHealth;
 
