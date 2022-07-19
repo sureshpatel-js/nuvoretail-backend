@@ -29,7 +29,7 @@ const ProductAdsSchema = new Schema({
     clicks: {
         type: Number
     },
-    asin: {
+    platform_code: {
         type: String
     },
     attributed_sales_14_d: {
