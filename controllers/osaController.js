@@ -14,4 +14,5 @@ exports.createOneOsa = async (req, res, next) => {
         return next(new AppError(400, ""));
     }
 
-}
+ }
+
