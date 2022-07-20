@@ -1,9 +1,10 @@
 const BrandHealthModel = require("../../models/brandHealthModel");
 const ProductMasterModel = require("../../models/productMasterModel");
+const ProductAdsModel = require("../../models/productAdsModel");
 const OsaModel = require("../../models/osaModel");
 const AppError = require("../../utils/errorHandling/AppError");
 const { validateBrandHealthDashboardBody } = require("../../validate/validateDashboard/validateBrandHealthDashboard");
-const { aggregate } = require("../../models/productMasterModel");
+
 
 
 exports.getBrandHealthDashboardData = async (req, res, next) => {
@@ -292,12 +293,15 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
 
 
 exports.getOneDayBrandHealthDashboardData = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const yesterday = new Date("2022-07-15T00:00:00.000+00:00");
+    yesterday.setDate(yesterday.getDate() - 1);
     try {
         //  const osa = await OsaModel.find({time_stamp:"2022-06-24T00:00:00.000+00:00"});
         const osaArray = await OsaModel.aggregate([
             {
                 $match: {
-                    time_stamp: new Date("2022-07-15T00:00:00.000+00:00")
+                    time_stamp: new Date(time_stamp)
                 }
             }
             ,
@@ -321,7 +325,7 @@ exports.getOneDayBrandHealthDashboardData = async (req, res, next) => {
         const brandHealthArray = await BrandHealthModel.aggregate([
             {
                 $match: {
-                    time_stamp: new Date("2022-07-15T00:00:00.000+00:00")
+                    time_stamp: new Date(time_stamp)
                 }
             }
             ,
@@ -373,8 +377,10 @@ exports.getOneDayBrandHealthDashboardData = async (req, res, next) => {
             }
         ])
         let highly_promotable_products_status = [];
+        let platform_code_array = [];
         for (let osaObj of osaArray) {
             const { _id } = osaObj;
+            platform_code_array.push(_id);
             const bhObj = brandHealthArray.filter(bhEl => bhEl._id === _id);
             if (bhObj.length > 0) {
                 const { available } = osaObj;
@@ -398,12 +404,29 @@ exports.getOneDayBrandHealthDashboardData = async (req, res, next) => {
                 }
             }
         }
+        console.log(platform_code_array)
+
+        const productAdsArray = await ProductAdsModel.aggregate([
+            {
+                $match: {
+                    platform_code: { $in: platform_code_array },
+
+                }
+            },
+            {
+                $group: {
+                    _id: "$platform_code",
+                    spend: { $sum: "$cost" }
+                }
+            }
+        ]);
+
 
 
 
         res.status(200).json({
             status: "success",
-            highly_promotable_products_status
+            productAdsArray
         });
 
 

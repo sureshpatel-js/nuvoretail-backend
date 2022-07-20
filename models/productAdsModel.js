@@ -32,6 +32,7 @@ const ProductAdsSchema = new Schema({
     platform_code: {
         type: String
     },
+ 
     attributed_sales_14_d: {
         type: Number
     },
