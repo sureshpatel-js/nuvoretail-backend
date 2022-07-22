@@ -32,7 +32,7 @@ const ProductAdsSchema = new Schema({
     platform_code: {
         type: String
     },
- 
+
     attributed_sales_14_d: {
         type: Number
     },
@@ -42,7 +42,7 @@ const ProductAdsSchema = new Schema({
     attributed_units_ordered_14_d: {
         type: Number
     },
-    date: {
+    time_stamp: {
         type: Date
     },
     campaign_type: {

@@ -4,6 +4,7 @@ const ProductAdsModel = require("../../models/productAdsModel");
 const OsaModel = require("../../models/osaModel");
 const AppError = require("../../utils/errorHandling/AppError");
 const { validateBrandHealthDashboardBody } = require("../../validate/validateDashboard/validateBrandHealthDashboard");
+const { calculateChange } = require("../../utils/commonFunction/dashboardFunction");
 
 
 
@@ -31,16 +32,16 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
                         platform_code: "$platform_code"
                     },
                     available_location_no: { $sum: { $cond: { if: { $eq: ["$status", true] }, then: 1, else: 0 } } },
-                    total_location_no: { $sum: 1 }
+                    total_doc_no: { $sum: 1 }
                 }
             },
-            {//total_location_no is zero then
+            {//total_doc_no is zero then
                 $project: {
-                    available: { $cond: { if: { $eq: ["$available_location_no", 0] }, then: 0, else: { $multiply: [{ $divide: ['$available_location_no', "$total_location_no"] }, 100] }, }, },
+                    available: { $cond: { if: { $eq: ["$available_location_no", 0] }, then: 0, else: { $multiply: [{ $divide: ['$available_location_no', "$total_doc_no"] }, 100] }, }, },
                 }
             },
             {
-                $unset: ["available_location_no", "total_location_no"]
+                $unset: ["available_location_no", "total_doc_no"]
             },
             {
                 $group: {
@@ -74,7 +75,7 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
         const brandHealthArray = await BrandHealthModel.aggregate([
             {
                 $match: {
-                    time_stamp: { $gte: new Date("2022-07-10T00:00:00.000+00:00"), $lte: new Date("2022-07-15T00:00:00.000+00:00") }
+                    time_stamp: { $gte: startDate, $lte: endDate }
                 }
             }
             ,
@@ -293,11 +294,21 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
 
 
 exports.getOneDayBrandHealthDashboardData = async (req, res, next) => {
+
     const { time_stamp } = req.body;
-    const yesterday = new Date("2022-07-15T00:00:00.000+00:00");
+    const yesterday = new Date(time_stamp);
+    const dayBeforeYesterday = new Date(time_stamp);
     yesterday.setDate(yesterday.getDate() - 1);
+    dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 2);
     try {
-        //  const osa = await OsaModel.find({time_stamp:"2022-06-24T00:00:00.000+00:00"});
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^get masters^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        let platform_code_array = [];
+        const product_master = await ProductMasterModel.find().select("asin title sub_category");
+        for (let product of product_master) {
+            platform_code_array.push(product.asin);
+        }
+
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^highly_promotable_products_status_array^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         const osaArray = await OsaModel.aggregate([
             {
                 $match: {
@@ -309,19 +320,22 @@ exports.getOneDayBrandHealthDashboardData = async (req, res, next) => {
                 $group: {
                     _id: "$platform_code",
                     available_location_no: { $sum: { $cond: { if: { $eq: ["$status", true] }, then: 1, else: 0 } } },
-                    total_location_no: { $sum: 1 }
+                    total_doc_no: { $sum: 1 },
+                    sub_cat_rank: { $sum: "$sub_cat_rank" },
                 }
             },
             {
                 $project: {
-                    available: { $cond: { if: { $eq: ["$available_location_no", 0] }, then: 0, else: { $multiply: [{ $divide: ['$available_location_no', "$total_location_no"] }, 100] }, }, },
+                    available: { $cond: { if: { $eq: ["$available_location_no", 0] }, then: 0, else: { $multiply: [{ $divide: ['$available_location_no', "$total_doc_no"] }, 100] }, }, },
+                    // sub_cat_rank: { $cond: { if: { $eq: ["$sub_cat_rank", 0] }, then: 0, else: { $multiply: [{ $divide: ['$sub_cat_rank', "$sub_cat_rank"] }, 100] }, }, },
+                    sub_cat_rank:"$sub_cat_rank"
                 }
             },
             {
-                $unset: ["available_location_no", "total_location_no"]
+                $unset: ["available_location_no", "total_doc_no"]
             }
         ])
-
+        console.log(osaArray)
         const brandHealthArray = await BrandHealthModel.aggregate([
             {
                 $match: {
@@ -376,8 +390,8 @@ exports.getOneDayBrandHealthDashboardData = async (req, res, next) => {
                 }
             }
         ])
-        let highly_promotable_products_status = [];
-        let platform_code_array = [];
+        let highly_promotable_products_status_array = [];
+
         for (let osaObj of osaArray) {
             const { _id } = osaObj;
             platform_code_array.push(_id);
@@ -392,41 +406,208 @@ exports.getOneDayBrandHealthDashboardData = async (req, res, next) => {
                 } = bhObj[0];
 
                 if (available > 0 && out_of_three_top_reviews_positive === 3 && out_of_three_most_recent_positive === 3 && rating >= 4 && no_of_rating > 10) {
-                    highly_promotable_products_status.push({
+                    highly_promotable_products_status_array.push({
                         platform_code: _id,
-                        status: true
+                        highly_promotable_status: true
                     })
                 } else {
-                    highly_promotable_products_status.push({
+                    highly_promotable_products_status_array.push({
                         platform_code: _id,
-                        status: false
+                        highly_promotable_status: false
                     })
                 }
             }
         }
-        console.log(platform_code_array)
 
-        const productAdsArray = await ProductAdsModel.aggregate([
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^SVD_and_BAU_avg_sales_array^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        const todaysDateTime = new Date().toISOString();
+        const inputDate = todaysDateTime.split("T")[0] + "T" + "00:00:00.000Z";
+        const yesterday = new Date(inputDate);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const inputDateNumber = new Date(inputDate).getDate();
+        const firstDateOfMonth = new Date(inputDate);
+        firstDateOfMonth.setDate(inputDateNumber - (inputDateNumber - 1));
+        const seventhDateOfMonth = new Date(inputDate);
+        seventhDateOfMonth.setDate(inputDateNumber - (inputDateNumber - 7));
+        const inputDateNum = new Date(inputDate).getDate();
+        let divNum;
+        if (inputDateNum >= 2 && inputDateNum <= 8) {
+            divNum = yesterday.getDate()
+        } else if (inputDateNum >= 8) {
+            divNum = 7
+        } else if (inputDateNum < 2) {
+            divNum = null
+        }
+        let divNum2;
+        if (inputDateNum > 8) {
+            divNum2 = yesterday.getDate() - 7
+        } else if (inputDateNum <= 8) {
+            divNum2 = null;
+        }
+        const SVD_and_BAU_avg_sales_array = await ProductAdsModel.aggregate([
             {
                 $match: {
                     platform_code: { $in: platform_code_array },
+                    time_stamp: { $gte: firstDateOfMonth, $lte: yesterday }
 
                 }
             },
             {
                 $group: {
                     _id: "$platform_code",
-                    spend: { $sum: "$cost" }
+                    cost: { $sum: "$cost" },
+                    sum_of_SVD: { $sum: { $cond: { if: { $lte: ["$time_stamp", seventhDateOfMonth] }, then: "$attributed_sales_14_d", else: 0 } } },
+                    sum_of_BAU: { $sum: { $cond: { if: { $gt: ["$time_stamp", seventhDateOfMonth] }, then: "$attributed_sales_14_d", else: 0 } } },
+                }
+
+            },
+            {
+                $project: {
+                    SVD_avg_sales: { $cond: { if: { $ne: [divNum, null] }, then: { $divide: ["$sum_of_SVD", divNum] }, else: 0 } },
+                    BAU_avg_sales: { $cond: { if: { $ne: [divNum2, null] }, then: { $divide: ["$sum_of_BAU", divNum2] }, else: 0 } },
                 }
             }
         ]);
 
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^yesterday_and_day_before_yesterdays_AMS_data^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        const yesterday_and_day_before_yesterdays_AMS_data = await ProductAdsModel.aggregate([
+            {
+                $match: {
+                    platform_code: { $in: platform_code_array },
+                    time_stamp: { $gte: dayBeforeYesterday, $lte: yesterday }
+
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        time_stamp: "$time_stamp",
+                        platform_code: "$platform_code"
+                    },
+                    cost: { $sum: "$cost" },
+                    attributed_sales_14_d: { $sum: "$attributed_sales_14_d" },
+                    attributed_units_ordered_14_d: { $sum: "$attributed_units_ordered_14_d" },
+                    impressions: { $sum: "$impressions" },
+                    clicks: { $sum: "$clicks" }
+                }
+
+            },
+            {
+                $group: {
+                    _id: "$_id.time_stamp",
+                    "status": {
+                        $push: {
+                            platform_code: "$_id.platform_code",
+                            cost: "$cost",
+                            attributed_sales_14_d: "$attributed_sales_14_d",
+                            attributed_units_ordered_14_d: "$attributed_units_ordered_14_d",
+                            impressions: "$impressions",
+                            clicks: "$clicks"
+                        }
+                    }
+                }
+
+            },
+            {
+                $sort: { "_id": 1 }
+            },
+        ]);
+        let y_and_day_before_y_AMS_data_array = [];
+        const [productAdsArrayDayBeforeYesterdaysEl, productAdsArrayYesterdaysEl] = yesterday_and_day_before_yesterdays_AMS_data;//If product array is undefined then
+
+        for (let yesterdaysEl of productAdsArrayYesterdaysEl.status) {
+            const { platform_code } = yesterdaysEl;
+            const [dayBeforeYesterdaysEl] = productAdsArrayDayBeforeYesterdaysEl.status.filter(dBYEl => dBYEl.platform_code === platform_code);
+            if (dayBeforeYesterdaysEl) {
+                const sales = yesterdaysEl.attributed_sales_14_d;
+                const sales_diff = yesterdaysEl.attributed_sales_14_d - dayBeforeYesterdaysEl.attributed_sales_14_d;
+                const sales_percesntage_change = (sales_diff / dayBeforeYesterdaysEl.attributed_sales_14_d) * 100;
+                const impressions_diff = yesterdaysEl.impressions - dayBeforeYesterdaysEl.impressions;
+                const clicks_diff = yesterdaysEl.clicks - dayBeforeYesterdaysEl.clicks;
+                const sales_flow = calculateChange(sales_diff);
+                const impressions_flow = calculateChange(impressions_diff);
+                const clicks_flow = calculateChange(clicks_diff);
+                const day_before_yesterdays_conversion = dayBeforeYesterdaysEl.attributed_units_ordered_14_d / dayBeforeYesterdaysEl.clicks;
+                const yesterdays_conversion = yesterdaysEl.attributed_units_ordered_14_d / yesterdaysEl.clicks;
+                const conversion_diff = yesterdays_conversion - day_before_yesterdays_conversion;
+                const conversion_percentage = yesterdays_conversion * 100;
+                const conversion_flow = calculateChange(conversion_diff);
+                const day_before_yesterdays_ctr = dayBeforeYesterdaysEl.clicks / dayBeforeYesterdaysEl.impressions;
+                const yesterdays_ctr = yesterdaysEl.clicks / yesterdaysEl.impressions;
+                const ctr_diff = yesterdays_ctr - day_before_yesterdays_ctr;
+                const ctr_percentage = yesterdays_ctr * 100;
+                const ctr_flow = calculateChange(ctr_diff);
+                y_and_day_before_y_AMS_data_array.push({
+                    platform_code,
+                    sales,
+                    sales_flow,
+                    sales_diff,
+                    sales_percesntage_change,
+                    cost: yesterdaysEl.cost,
+                    impressions: yesterdaysEl.impressions,
+                    impressions_flow,
+                    clicks: yesterdaysEl.clicks,
+                    clicks_flow,
+                    conversion_percentage,
+                    conversion_flow,
+                    ctr_percentage,
+                    ctr_flow
+                })
+            }
+        }
+
+
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^RESULTS^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        let product_wise_status_array = []
+        for (let product of product_master) {
+            const { title, sub_category } = product;
+            let product_obj = {
+                title,
+                sub_category
+            };
+            const platform_code = product.asin;
+            const [highly_promotable_products_status_obj] = highly_promotable_products_status_array.filter(el => el.platform_code === platform_code);
+            if (highly_promotable_products_status_obj) {
+                product_obj = {
+                    ...product_obj,
+                    ...highly_promotable_products_status_obj
+                }
+            }
+            const [SVD_and_BAU_avg_sales_obj] = SVD_and_BAU_avg_sales_array.filter(el => el._id === platform_code);
+            if (SVD_and_BAU_avg_sales_obj) {
+
+                product_obj = {
+                    ...product_obj,
+                    SVD_avg_sales: SVD_and_BAU_avg_sales_obj.SVD_avg_sales,
+                    BAU_avg_sales: SVD_and_BAU_avg_sales_obj.SVD_avg_sales
+                }
+            }
+            const [y_and_day_before_y_AMS_data_obj] = y_and_day_before_y_AMS_data_array.filter(el => el.platform_code === platform_code);
+            if (y_and_day_before_y_AMS_data_obj) {
+                product_obj = {
+                    ...product_obj,
+                    ...y_and_day_before_y_AMS_data_obj
+                }
+            }
+
+            product_wise_status_array.push(product_obj);
+        }
 
 
 
         res.status(200).json({
             status: "success",
-            productAdsArray
+            data: {
+                // time_stamp: productAdsArrayYesterdaysEl._id,
+                // y_and_day_before_y_AMS_data_array,
+                // SVD_and_BAU_avg_sales_array,
+                // highly_promotable_products_status_array,
+                // brandHealthArray
+                // osaArray
+                // yesterday_and_day_before_yesterdays_AMS_data
+                product_wise_status_array
+            }
         });
 
 
