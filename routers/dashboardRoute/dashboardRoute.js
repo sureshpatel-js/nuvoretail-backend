@@ -3,12 +3,17 @@ const brandHealthDashboardController = require("../../controllers/dashboardContr
 const router = express.Router();
 
 router
-    .route("/getBrandHealthDashboardData")
+    .route("/getStaticData")
     .post(brandHealthDashboardController.getBrandHealthDashboardData);
 router
-    .route("/getOneDayBrandHealthDashboardData")
-    .post(brandHealthDashboardController.getOneDayBrandHealthDashboardData);
-
+    .route("/getProductWiseStatus")
+    .post(brandHealthDashboardController.getProductWiseStatus);
+router
+    .route("/getBrandWiseStatus")
+    .post(brandHealthDashboardController.getBrandWiseStatus);
+router
+    .route("/getAdvSalesAndAcosGraphData")
+    .post(brandHealthDashboardController.getAdvSalesAndAcos);
 
 
 module.exports = router;

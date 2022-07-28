@@ -26,7 +26,7 @@ app.use("/onbordingCrawledData", onbordingCrawledDataRoute);
 app.use("/osa", osaRoute);
 app.use("/sentiment", sentimentRoute);
 app.use("/brandHealth", brandHealthRoute);
-app.use("/dashboard", dashboardRoute);
+app.use("/dashboard/brandHealth", dashboardRoute);
 app.use("/product", productRoute)
 
 
