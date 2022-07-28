@@ -239,7 +239,7 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
         }
 
 
-        const sub_brands = await ProductMasterModel.find();
+        const brand_and_category = await ProductMasterModel.find().select("sub_brand category asin")
 
 
 
@@ -248,7 +248,7 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
             data: {
                 deals_on_num_of_products,
                 status_array: data,
-                sub_brands
+                brand_and_category
             }
         });
 
@@ -1354,7 +1354,4 @@ exports.getAdvSalesAndAcos = async (req, res, next) => {
     } catch (error) {
 
     }
-
-
-
 }
