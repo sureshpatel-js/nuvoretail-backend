@@ -812,7 +812,7 @@ exports.getBrandWiseStatus = async (req, res, next) => {
                 sub_cat_rank,
                 sub_cat_rank_flow,
                 rating,
-                cost: obj_cost,
+                cost: roundOffToTwoDecimal(obj_cost),
                 cost_flow,
                 available,
                 available_flow,
@@ -1329,17 +1329,22 @@ exports.getAdvSalesAndAcos = async (req, res, next) => {
             },
             {
                 $project: {
+                    time_stamp: "$_id",
                     adv_sales: "$adv_sales",
                     acos_percentage: { $multiply: [{ $divide: ["$cost", "$adv_sales"] }, 100] },
                 }
             },
             {
-                $unset: ["cost"]
+                $unset: ["cost", "_id"]
             },
             {
                 $sort: { _id: 1 }
             }
         ]);
+        adv_and_acos_array.forEach(el => {
+            el.adv_sales = roundOffToTwoDecimal(el.adv_sales);
+            el.acos_percentage = roundOffToTwoDecimal(el.acos_percentage);
+        })
         res.status(200).json({
             status: "success",
             data: {
