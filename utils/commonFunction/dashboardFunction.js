@@ -9,3 +9,8 @@ exports.calculateChange = (numDiff) => {
     }
     return change;
 }
+
+exports.calculateProductDeal = (mrp, sp) => {
+    const promo_percentage = ((mrp - sp) / mrp) * 100;
+    return promo_percentage;
+}
