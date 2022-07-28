@@ -9,7 +9,7 @@ const { roundOffToTwoDecimal, addNumbersInArray, calculatePercentageChange, divT
 
 
 
-exports.getBrandHealthDashboardData = async (req, res, next) => {
+exports.getStaticData = async (req, res, next) => {
     const value = await validateBrandHealthDashboardBody(req.body);
     if (!value.status) {
         next(new AppError(400, value.message));
@@ -62,14 +62,25 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
         const todaysOsaData = await OsaModel.aggregate([
             {
                 $match: {
-                    time_stamp: new Date("2022-07-10T00:00:00.000+00:00")
+                    time_stamp: new Date(endDate)
                 }
             },
             {
                 $group: {
                     _id: "$platform_code",
                     deals_at_location: { $sum: { $cond: { if: { $ne: ["$deal", null] }, then: 1, else: 0 } } },
+                    sum_of_buy_box: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$authorized_seller", true] }] }, then: 1, else: 0 } } },
+                    total_doc_no: { $sum: 1 },
                 }
+            },
+            {
+                $project: {
+                    deals_at_location: "$deals_at_location",
+                    buy_box_percentage: { $multiply: [{ $divide: ["$sum_of_buy_box", "$total_doc_no"] }, 100] },
+                }
+            },
+            {
+                $unset: ["sum_of_buy_box", "total_doc_no",]
             }
 
         ])
@@ -184,18 +195,20 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
                 },
             }
         ])
-        let deals_on_num_of_products = 0
+        const brand_and_category = await ProductMasterModel.find().select("sub_brand category asin")
+
+        let deals_on_num_of_products = 0;
+        let product_below_eighty_percentage = 0;
         for (let todaysObj of todaysOsaData) {
-            let { deals_at_location } = todaysObj;
+            let { deals_at_location, buy_box_percentage } = todaysObj;
             if (deals_at_location > 0) {
                 deals_on_num_of_products = deals_on_num_of_products + 1;
             }
+            if (buy_box_percentage < 80) {
+                product_below_eighty_percentage = product_below_eighty_percentage + 1;
+            }
         }
-
-
-
         let data = [];
-
         for (let osaObj of osaArray) {
             const { _id } = osaObj;
             const bhObj = brandHealthArray.filter(bhEl => new Date(bhEl._id).getTime() === new Date(_id).getTime());
@@ -225,7 +238,6 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
                             non_promotable_products = non_promotable_products + 1;
                         }
                         low_promotable_products = osaObj.status.length - (highly_promotable_products + non_promotable_products);
-
                     }
                 }
             }
@@ -237,16 +249,11 @@ exports.getBrandHealthDashboardData = async (req, res, next) => {
             }
             data.push(obj);
         }
-
-
-        const brand_and_category = await ProductMasterModel.find().select("sub_brand category asin")
-
-
-
         res.status(200).json({
             status: "success",
             data: {
                 deals_on_num_of_products,
+                product_below_eighty_percentage,
                 status_array: data,
                 brand_and_category
             }
@@ -275,7 +282,7 @@ exports.getBrandWiseStatus = async (req, res, next) => {
             platform_code_array.push(product.asin);
         }
 
-        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^highly_promotable_products_status_array^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^combine_osa_and_brandhealth_data^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         const osaArray = await OsaModel.aggregate([
             {
                 $match: {
@@ -436,7 +443,7 @@ exports.getBrandWiseStatus = async (req, res, next) => {
                 }
             }
         ])
-        let highly_promotable_products_status_array = [];
+        let combine_osa_and_brandhealth_data = [];
 
         for (let osaObj of osaArray) {
             const { _id, sub_cat_rank, main_cat_rank, sp, buy_box_percentage } = osaObj;
@@ -489,7 +496,7 @@ exports.getBrandWiseStatus = async (req, res, next) => {
                     commonObj.highly_promotable_status = false;
                     commonObj.promotable = "low";
                 }
-                highly_promotable_products_status_array.push(commonObj);
+                combine_osa_and_brandhealth_data.push(commonObj);
 
             }
         }
@@ -651,11 +658,11 @@ exports.getBrandWiseStatus = async (req, res, next) => {
                 sub_category
             };
             const platform_code = product.asin;
-            const [highly_promotable_products_status_obj] = highly_promotable_products_status_array.filter(el => el.platform_code === platform_code);
-            if (highly_promotable_products_status_obj) {
+            const [combine_osa_and_brandhealth_data_obj] = combine_osa_and_brandhealth_data.filter(el => el.platform_code === platform_code);
+            if (combine_osa_and_brandhealth_data_obj) {
                 product_obj = {
                     ...product_obj,
-                    ...highly_promotable_products_status_obj
+                    ...combine_osa_and_brandhealth_data_obj
                 }
             }
             const [SVD_and_BAU_avg_sales_obj] = SVD_and_BAU_avg_sales_array.filter(el => el._id === platform_code);
@@ -861,7 +868,7 @@ exports.getProductWiseStatus = async (req, res, next) => {
             platform_code_array.push(product.asin);
         }
 
-        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^highly_promotable_products_status_array^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^combine_osa_and_brandhealth_data^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         const osaArray = await OsaModel.aggregate([
             {
                 $match: {
@@ -1027,7 +1034,7 @@ exports.getProductWiseStatus = async (req, res, next) => {
                 }
             }
         ])
-        let highly_promotable_products_status_array = [];
+        let combine_osa_and_brandhealth_data = [];
 
         for (let osaObj of osaArray) {
             const { _id, available, sub_cat_rank, main_cat_rank, sp, avg_delivery_days, max_delivery_days, deal_array, sub_cat_array, buy_box_percentage } = osaObj;
@@ -1093,7 +1100,7 @@ exports.getProductWiseStatus = async (req, res, next) => {
                     commonObj.highly_promotable_status = false;
                     commonObj.promotable = "low";
                 }
-                highly_promotable_products_status_array.push(commonObj);
+                combine_osa_and_brandhealth_data.push(commonObj);
 
             }
         }
@@ -1244,11 +1251,11 @@ exports.getProductWiseStatus = async (req, res, next) => {
                 sub_category
             };
             const platform_code = product.asin;
-            const [highly_promotable_products_status_obj] = highly_promotable_products_status_array.filter(el => el.platform_code === platform_code);
-            if (highly_promotable_products_status_obj) {
+            const [combine_osa_and_brandhealth_data_obj] = combine_osa_and_brandhealth_data.filter(el => el.platform_code === platform_code);
+            if (combine_osa_and_brandhealth_data_obj) {
                 product_obj = {
                     ...product_obj,
-                    ...highly_promotable_products_status_obj
+                    ...combine_osa_and_brandhealth_data_obj
                 }
             }
             const [SVD_and_BAU_avg_sales_obj] = SVD_and_BAU_avg_sales_array.filter(el => el._id === platform_code);

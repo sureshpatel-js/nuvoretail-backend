@@ -4,7 +4,7 @@ const router = express.Router();
 
 router
     .route("/getStaticData")
-    .post(brandHealthDashboardController.getBrandHealthDashboardData);
+    .post(brandHealthDashboardController.getStaticData);
 router
     .route("/getProductWiseStatus")
     .post(brandHealthDashboardController.getProductWiseStatus);
