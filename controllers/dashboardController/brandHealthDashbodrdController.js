@@ -6,7 +6,8 @@ const AppError = require("../../utils/errorHandling/AppError");
 const { validateBrandHealthDashboardBody } = require("../../validate/validateDashboard/validateBrandHealthDashboard");
 const { calculateChange, calculateProductDeal } = require("../../utils/commonFunction/dashboardFunction");
 const { roundOffToTwoDecimal, addNumbersInArray, calculatePercentageChange, divTwoNum } = require("../../utils/commonFunction/commonFunction");
-
+const { UNABLE_TO_GET_DATA } = require("../../constants/errorMessageConstants/dashboardController");
+const ProductAds = require("../../models/productAdsModel");
 
 
 exports.getStaticData = async (req, res, next) => {
@@ -262,6 +263,7 @@ exports.getStaticData = async (req, res, next) => {
 
     } catch (error) {
         console.log(error);
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -867,7 +869,7 @@ exports.getProductWiseStatus = async (req, res, next) => {
         for (let product of product_master) {
             platform_code_array.push(product.asin);
         }
-
+        console.log(platform_code_array)
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^combine_osa_and_brandhealth_data^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         const osaArray = await OsaModel.aggregate([
             {
@@ -1266,6 +1268,12 @@ exports.getProductWiseStatus = async (req, res, next) => {
                     SVD_avg_sales: roundOffToTwoDecimal(SVD_and_BAU_avg_sales_obj.SVD_avg_sales),
                     BAU_avg_sales: roundOffToTwoDecimal(SVD_and_BAU_avg_sales_obj.BAU_avg_sales)
                 }
+            } else {
+                product_obj = {
+                    ...product_obj,
+                    SVD_avg_sales: 0,
+                    BAU_avg_sales: 0
+                }
             }
             const [y_and_day_before_y_AMS_data_obj] = y_and_day_before_y_AMS_data_array.filter(el => el.platform_code === platform_code);
             if (y_and_day_before_y_AMS_data_obj) {
@@ -1307,9 +1315,6 @@ exports.getProductWiseStatus = async (req, res, next) => {
         console.log(error);
     }
 }
-
-
-
 
 exports.getAdvSalesAndAcos = async (req, res, next) => {
     const { time_stamp } = req.body;
@@ -1360,5 +1365,531 @@ exports.getAdvSalesAndAcos = async (req, res, next) => {
         })
     } catch (error) {
 
+    }
+}
+
+exports.getAvailabilityAndBuybox = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateBefore30Days = new Date(time_stamp);
+    dateBefore30Days.setDate(dateBefore30Days.getDate() - 31);
+    try {
+        const availability_and_buybox_array = await OsaModel.aggregate([
+            {
+                $match: {
+                    time_stamp: { $gte: dateBefore30Days, $lte: yesterday },
+                    platform_code: { $in: req.body.platform_code }
+                }
+            }
+            ,
+            {
+                $group: {
+                    _id: "$time_stamp",
+                    available_location_no: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$platform_code", "$defaultasin"] }] }, then: 1, else: 0 } } },
+                    total_doc_no: { $sum: 1 },
+                    sum_of_buy_box: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$authorized_seller", true] }] }, then: 1, else: 0 } } },
+                    total_available_no: { $sum: { $cond: { if: { $eq: ["$status", true] }, then: 1, else: 0 } } },
+
+                },
+            },
+            {
+                $project: {
+                    time_stamp: "$_id",
+                    available: { $round: [{ $cond: { if: { $eq: ["$available_location_no", 0] }, then: 0, else: { $multiply: [{ $divide: ['$available_location_no', "$total_doc_no"] }, 100] }, }, }, 2] },
+                    buy_box_percentage: { $round: [{ $multiply: [{ $divide: ["$sum_of_buy_box", "$total_available_no"] }, 100] }, 2] },
+                }
+            },
+            {
+                $unset: ["_id", "available_location_no", "total_doc_no", "sum_of_buy_box"]
+            },
+            {
+                $sort: { time_stamp: 1 }
+            }
+        ]);
+        res.status(200).json({
+            status: "success",
+            data: {
+                availability_and_buybox_array
+            }
+        })
+    } catch (error) {
+
+    }
+}
+
+exports.getCityWiseDeliveryDays = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateBefore30Days = new Date(time_stamp);
+    dateBefore30Days.setDate(dateBefore30Days.getDate() - 31);
+    try {
+        const city_wise_delivery_days_array = await OsaModel.aggregate([
+            {
+                $match: {
+                    time_stamp: { $gte: dateBefore30Days, $lte: yesterday },
+                    platform_code: { $in: req.body.platform_code }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        time_stamp: "$time_stamp",
+                        location: "$location",
+                    },
+                    delivery_days: { $avg: "$delivery_days" }
+                },
+            },
+            {
+                $group: {
+                    _id: "$_id.time_stamp",
+                    delivery_days: {
+                        $push: {
+                            location: "$_id.location",
+                            delivery_days: { $round: ["$delivery_days", 2] }
+                        }
+                    }
+
+                }
+            },
+            {
+                $project: {
+                    time_stamp: "$_id",
+                    delivery_days: "$delivery_days"
+                }
+            },
+            {
+                $unset: ["_id"]
+            },
+            {
+                $sort: { time_stamp: 1 }
+            }
+        ]);
+        res.status(200).json({
+            status: "success",
+            data: {
+                city_wise_delivery_days_array
+            }
+        })
+    } catch (error) {
+
+    }
+}
+
+
+exports.getAdvSpendsAndCpc = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateBefore30Days = new Date(time_stamp);
+    dateBefore30Days.setDate(dateBefore30Days.getDate() - 31);
+    try {
+        const adv_spends_and_cpc_array = await ProductAds.aggregate([
+            {
+                $match: {
+                    time_stamp: { $gte: dateBefore30Days, $lte: yesterday },
+                    platform_code: { $in: req.body.platform_code }
+                }
+            }
+            ,
+            {
+                $group: {
+                    _id: "$time_stamp",
+                    cost: { $sum: "$cost" },
+                    clicks: { $sum: "$clicks" }
+                },
+            },
+            {
+                $project: {
+                    cost: "$cost",
+                    cpc: { $round: { $divide: ["$cost", "$clicks"] } },
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            }
+        ]);
+        res.status(200).json({
+            status: "success",
+            data: {
+                adv_spends_and_cpc_array
+            }
+        })
+    } catch (error) {
+
+    }
+}
+
+
+exports.getCtrAndConversion = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateBefore30Days = new Date(time_stamp);
+    dateBefore30Days.setDate(dateBefore30Days.getDate() - 31);
+    try {
+        const ctr_and_conversion_array = await ProductAds.aggregate([
+            {
+                $match: {
+                    time_stamp: { $gte: dateBefore30Days, $lte: yesterday },
+                    platform_code: { $in: req.body.platform_code }
+                }
+            }
+            ,
+            {
+                $group: {
+                    _id: "$time_stamp",
+                    cost: { $sum: "$cost" },
+                    clicks: { $sum: "$clicks" },
+                    impressions: { $sum: "$impressions" },
+                    attributed_units_ordered_14_d: { $sum: "$attributed_units_ordered_14_d" }
+                },
+            },
+            {
+                $project: {
+                    ctr: { $round: [{ $multiply: [{ $divide: ["$clicks", "$impressions"] }, 100] }, 2] },
+                    conversion: { $round: [{ $multiply: [{ $divide: ["$attributed_units_ordered_14_d", "$clicks"] }, 100] }, 2] }
+
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            }
+        ]);
+        res.status(200).json({
+            status: "success",
+            data: {
+                ctr_and_conversion_array
+            }
+        })
+    } catch (error) {
+
+    }
+}
+exports.getClicksOrdersAndImpressions = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateBefore30Days = new Date(time_stamp);
+    dateBefore30Days.setDate(dateBefore30Days.getDate() - 31);
+    try {
+        const ctr_and_conversion_array = await ProductAds.aggregate([
+            {
+                $match: {
+                    time_stamp: { $gte: dateBefore30Days, $lte: yesterday },
+                    platform_code: { $in: req.body.platform_code }
+                }
+            }
+            ,
+            {
+                $group: {
+                    _id: "$time_stamp",
+                    clicks: { $sum: "$clicks" },
+                    impressions: { $sum: "$impressions" },
+                    attributed_units_ordered_14_d: { $sum: "$attributed_units_ordered_14_d" }
+                },
+            },
+            {
+                $project: {
+                    clicks: "$clicks",
+                    impressions: "$impressions",
+                    orders: "$attributed_units_ordered_14_d"
+                }
+            },
+            {
+                $sort: { _id: 1 }
+            }
+        ]);
+        res.status(200).json({
+            status: "success",
+            data: {
+                ctr_and_conversion_array
+            }
+        })
+    } catch (error) {
+
+    }
+}
+
+
+exports.getPrice = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateBefore30Days = new Date(time_stamp);
+    dateBefore30Days.setDate(dateBefore30Days.getDate() - 31);
+    try {
+        const price_array = await OsaModel.aggregate([
+            {
+                $match: {
+                    time_stamp: { $gte: dateBefore30Days, $lte: yesterday },
+                    platform_code: { $in: req.body.platform_code }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        time_stamp: "$time_stamp",
+                        platform_code: "$platform_code",
+                    },
+                    sp: { $avg: "$sp" }
+                },
+            },
+            {
+                $group: {
+                    _id: "$_id.time_stamp",
+                    delivery_days: {
+                        $push: {
+                            platform_code: "$_id.platform_code",
+                            sp: { $round: ["$sp", 2] }
+                        }
+                    }
+
+                }
+            },
+            {
+                $project: {
+                    time_stamp: "$_id",
+                    delivery_days: "$delivery_days"
+                }
+            },
+            {
+                $unset: ["_id"]
+            },
+            {
+                $sort: { time_stamp: 1 }
+            }
+        ]);
+        res.status(200).json({
+            status: "success",
+            data: {
+                price_array
+            }
+        })
+    } catch (error) {
+
+    }
+}
+
+
+exports.getDiscount = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateBefore30Days = new Date(time_stamp);
+    dateBefore30Days.setDate(dateBefore30Days.getDate() - 31);
+    try {
+        const price_array = await OsaModel.aggregate([
+            {
+                $lookup: {
+                    from: "productmasters",
+                    localField: "platform_code",    // field in the orders collection
+                    foreignField: "asin",  // field in the items collection
+                    as: "productmasters"
+                }
+
+            },
+            {
+                $replaceRoot: { newRoot: { $mergeObjects: [{ $arrayElemAt: ["$productmasters", 0] }, "$$ROOT"] } }
+            },
+            {
+                $unset: ["productmasters"]
+            },
+            {
+                $match: {
+                    time_stamp: { $gte: dateBefore30Days, $lte: yesterday },
+                    platform_code: { $in: req.body.platform_code }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        time_stamp: "$time_stamp",
+                        platform_code: "$platform_code",
+                    },
+                    sp: { $avg: "$sp" },
+                    mrp: { $avg: "$mrp" }
+                },
+            },
+            {
+                $group: {
+                    _id: "$_id.time_stamp",
+                    discount: {
+                        $push: {
+                            platform_code: "$_id.platform_code",
+                            discount_percentage: { $round: [{ $multiply: [{ $divide: [{ $subtract: ["$mrp", "$sp"] }, "$mrp"] }, 100] }] },
+                        }
+                    }
+
+                }
+            },
+            {
+                $project: {
+                    time_stamp: "$_id",
+                    discount: "$discount",
+                }
+            },
+            {
+                $unset: ["_id"]
+            },
+            {
+                $sort: { time_stamp: 1 }
+            }
+        ]);
+        res.status(200).json({
+            status: "success",
+            data: {
+                price_array
+            }
+        })
+    } catch (error) {
+
+    }
+}
+
+exports.getCategoryAndShelfRank = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateBefore30Days = new Date(time_stamp);
+    dateBefore30Days.setDate(dateBefore30Days.getDate() - 31);
+    try {
+        const city_wise_delivery_days_array = await OsaModel.aggregate([
+            {
+                $match: {
+                    time_stamp: { $gte: dateBefore30Days, $lte: yesterday },
+                    platform_code: { $in: req.body.platform_code }
+                }
+            },
+            {
+                $group: {
+                    _id: "$time_stamp",
+                    main_cat_rank: { $avg: "$main_cat_rank" },
+                    sub_cat_rank: { $avg: "$sub_cat_rank" }
+                },
+            },
+            {
+                $project: {
+                    time_stamp: "$_id",
+                    main_cat_rank: { $round: ["$main_cat_rank"] },
+                    sub_cat_rank: { $round: ["$sub_cat_rank"] }
+                }
+            },
+            {
+                $unset: ["_id"]
+            },
+            {
+                $sort: { time_stamp: 1 }
+            }
+        ]);
+        res.status(200).json({
+            status: "success",
+            data: {
+                city_wise_delivery_days_array
+            }
+        })
+    } catch (error) {
+
+    }
+}
+
+
+exports.getCountOfTopAndRecentReviews = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dateBefore30Days = new Date(time_stamp);
+    dateBefore30Days.setDate(dateBefore30Days.getDate() - 31);
+    try {
+
+        const count_of_top_and_recent_reviews = await BrandHealthModel.aggregate([
+            {
+
+                $match: {
+                    time_stamp: { $gte: dateBefore30Days, $lte: yesterday },
+                    platform_code: { $in: req.body.platform_code }
+                }
+            }
+            ,
+            {
+                $group: {
+                    _id: "$time_stamp",
+                    out_of_three_top_reviews_negative: {
+                        $sum: {
+                            $cond: {
+                                if: {
+                                    $and: [
+                                        { $eq: ["$review_type", "Top Reviews"] },
+                                        {
+                                            $or: [
+                                                { $eq: ["$rank", 1] },
+                                                { $eq: ["$rank", 2] },
+                                                { $eq: ["$rank", 3] }
+                                            ]
+                                        },
+                                        { $lte: ["$cust_rating", 2] }
+                                    ]
+                                }, then: 1, else: 0
+                            }
+                        }
+                    },
+                    out_of_three_most_recent_negative: {
+                        $sum: {
+                            $cond: {
+                                if: {
+                                    $and: [
+                                        { $eq: ["$review_type", "Most Recent"] },
+                                        {
+                                            $or: [
+                                                { "$eq": ["$rank", 1] },
+                                                { "$eq": ["$rank", 2] },
+                                                { "$eq": ["$rank", 3] }
+                                            ]
+                                        },
+                                        { $lte: ["$cust_rating", 2] }
+                                    ]
+                                }, then: 1, else: 0
+                            }
+                        }
+                    },
+                    rating: { $avg: "$rating" },
+                }
+            },
+            {
+                $project: {
+                    time_stamp: "$_id",
+                    out_of_three_top_reviews_negative: "$out_of_three_top_reviews_negative",
+                    out_of_three_most_recent_negative: "$out_of_three_most_recent_negative",
+                    rating: "$rating"
+                }
+            },
+            {
+                $unset: ["_id"]
+            },
+            {
+                $sort: { time_stamp: 1 }
+            }
+        ])
+
+        res.status(200).json({
+            status: "success",
+            data: {
+                count_of_top_and_recent_reviews
+            }
+        });
+
+
+    } catch (error) {
+        console.log(error);
     }
 }

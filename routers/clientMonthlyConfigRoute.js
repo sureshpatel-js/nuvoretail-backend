@@ -5,12 +5,9 @@ router
     .route("/")
     .get(clientMonthlyConfigController.getClientMonthlyConfig);
 router
-    .route("/stageOne/:id?")
-    .post(clientMonthlyConfigController.createClientMonthlyConfigStageOne)
-    .put(clientMonthlyConfigController.updateClientMonthlyConfigStageOne);
-router
-    .route("/stageTwo/:id")
-    .put(clientMonthlyConfigController.createClientMonthlyConfigStageTwo);
+    .route("/:id?")
+    .post(clientMonthlyConfigController.createClientMonthlyConfig)
+    .put(clientMonthlyConfigController.updateClientMonthlyConfig);
 
 
 module.exports = router;

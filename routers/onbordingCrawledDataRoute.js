@@ -5,11 +5,22 @@ const router = express.Router();
 
 router
     .route("/")
-    .get(authController.protectRoute, authController.restrictTo("client-admin"), onbordingCrawledDataController.getOnbordingCrawledData)
+    .get(onbordingCrawledDataController.getOnbordingCrawledData)
     .post(onbordingCrawledDataController.createOnbordingCrawledData);
+router
+    .route("/getSellerNames")
+    .get(onbordingCrawledDataController.getSellerNames);
+
+router
+    .route("/getKeywords")
+    .get(onbordingCrawledDataController.getKeywords)
+
+
 
 router
     .route("/insertMany")
     .post(onbordingCrawledDataController.createManyOnbordingCrawledData);
+
+
 
 module.exports = router;

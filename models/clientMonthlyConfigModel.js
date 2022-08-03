@@ -2,7 +2,7 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const ClientMonthlyConfigSchema = new Schema({
-    user_id: {
+    created_by: {
         type: Schema.Types.ObjectId
     },
     product_list: {
@@ -18,18 +18,9 @@ const ClientMonthlyConfigSchema = new Schema({
         type: Array
     },
     created_by: {
-        type: Schema.Types.ObjectId 
-    },
-    stage_one_created_at: {
         type: Date
     },
-    stage_one_updated_at: {
-        type: Date
-    },
-    stage_two_created_at: {
-        type: Date
-    },
-    stage_two_updated_at: {
+    created_at: {
         type: Date
     },
     udpdated_at: {

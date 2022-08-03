@@ -11,7 +11,7 @@ const authRoute = require("./routers/authRoute");
 const osaRoute = require("./routers/osaRoute");
 const sentimentRoute = require("./routers/sentimentRoute");
 const brandHealthRoute = require("./routers/brandHealthRoute")
-const dashboardRoute = require("./routers/dashboardRoute/dashboardRoute");
+const brandhealthDashboardRoute = require("./routers/dashboardRoute/brandhealthDashboardRoute");
 const productRoute = require("./routers/productRoute");
 //db connection
 const mongodbConnection = require("./db/mongodb");
@@ -26,7 +26,7 @@ app.use("/onbordingCrawledData", onbordingCrawledDataRoute);
 app.use("/osa", osaRoute);
 app.use("/sentiment", sentimentRoute);
 app.use("/brandHealth", brandHealthRoute);
-app.use("/dashboard/brandHealth", dashboardRoute);
+app.use("/dashboard/brandHealth", brandhealthDashboardRoute);
 app.use("/product", productRoute)
 
 

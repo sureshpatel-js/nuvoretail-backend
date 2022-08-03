@@ -1,10 +1,9 @@
 const Joi = require("joi");
 
-exports.validateClientMonthlyConfigStageOne = async (body, reqType) => {
+exports.validateClientMonthlyConfig = async (body, reqType) => {
     let schema;
     if (reqType === "post") {
         schema = Joi.object({
-            user_id: Joi.string().required(),
             product_list: Joi.array().items(Joi.object({
                 product_code: Joi.string().required(),
                 priority: Joi.boolean().required()
@@ -13,11 +12,25 @@ exports.validateClientMonthlyConfigStageOne = async (body, reqType) => {
                 seller_name: Joi.string().required(),
                 fba_model: Joi.boolean().required()
             })).required(),
-            stage_one_created_date: Joi.date().required(),
+            keyword_budget: Joi.object({
+                total_budget: Joi.number().required(),
+                monthly_budget: Joi.number().required(),
+                target_acos: Joi.number().required(),
+                month_budget_dist: Joi.array().items(Joi.object({
+                    start_date: Joi.date().required(),
+                    end_date: Joi.date().required(),
+                    budget_dist: Joi.number().required()
+                })).required(),
+            }).required(),
+            prioritize_competitor: Joi.array().items(Joi.object({
+                brand_name: Joi.string().required(),
+                priority: Joi.boolean().required(),
+                close_competitor: Joi.boolean().required(),
+            })).required(),
+            created_at: Joi.date().required(),
         });
     } else if (reqType === "put") {
         schema = Joi.object({
-            user_id: Joi.string().required(),
             product_list: Joi.array().items(Joi.object({
                 product_code: Joi.string().required(),
                 priority: Joi.boolean().required()
@@ -26,7 +39,22 @@ exports.validateClientMonthlyConfigStageOne = async (body, reqType) => {
                 seller_name: Joi.string().required(),
                 fba_model: Joi.boolean().required()
             })).required(),
-            stage_one_updated_date: Joi.date().required(),
+            keyword_budget: Joi.object({
+                total_budget: Joi.number().required(),
+                monthly_budget: Joi.number().required(),
+                target_acos: Joi.number().required(),
+                month_budget_dist: Joi.array().items(Joi.object({
+                    start_date: Joi.date().required(),
+                    end_date: Joi.date().required(),
+                    budget_dist: Joi.number().required()
+                })).required(),
+            }).required(),
+            prioritize_competitor: Joi.array().items(Joi.object({
+                brand_name: Joi.string().required(),
+                priority: Joi.boolean().required(),
+                close_competitor: Joi.boolean().required(),
+            })).required(),
+            updated_at: Joi.date().required(),
         });
     }
     try {
