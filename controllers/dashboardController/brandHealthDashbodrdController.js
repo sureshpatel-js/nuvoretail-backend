@@ -1798,7 +1798,7 @@ exports.getCategoryAndShelfRank = async (req, res, next) => {
             }
         })
     } catch (error) {
-
+        console.log(error)
     }
 }
 
@@ -1891,5 +1891,62 @@ exports.getCountOfTopAndRecentReviews = async (req, res, next) => {
 
     } catch (error) {
         console.log(error);
+    }
+}
+
+
+exports.getRatingsAndReviews = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    try {
+        const ratings_and_reviews = await BrandHealthModel.aggregate([
+            {
+                $match: {
+                    time_stamp: date,
+                    platform_code: { $in: req.body.platform_code }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        time_stamp: "$comment_date",
+                        rating: "$cust_rating",
+                    },
+                    count: { $sum: 1 }
+                },
+            },
+            {
+                $group: {
+                    _id: "$_id.time_stamp",
+                    rating_count: {
+                        $push: {
+                            rating: "$_id.rating",
+                            count: "$count"
+                        }
+                    }
+
+                }
+            },
+            {
+                $project: {
+                    time_stamp: "$_id",
+                    rating_count: "$rating_count"
+                }
+            },
+            {
+                $unset: ["_id"]
+            },
+            {
+                $sort: { time_stamp: 1 }
+            }
+        ]);
+        res.status(200).json({
+            status: "success",
+            data: {
+                ratings_and_reviews
+            }
+        })
+    } catch (error) {
+        console.log(error)
     }
 }

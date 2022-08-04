@@ -54,6 +54,9 @@ router
     .route("/getCountOfTopAndRecentReviews")
     .post(brandHealthDashboardController.getCountOfTopAndRecentReviews);
 
+router
+    .route("/getRatingsAndReviews")
+    .post(brandHealthDashboardController.getRatingsAndReviews);
 
 
 module.exports = router;

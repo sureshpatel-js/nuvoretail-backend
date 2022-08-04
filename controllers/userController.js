@@ -329,3 +329,8 @@ exports.createInternalUser = async (req, res, next) => {
     session.endSession();
 
 }
+
+
+exports.getMyObj = async (req, res, next) => {
+    console.log(req.user);
+}
