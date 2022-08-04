@@ -1,30 +1,13 @@
 const OnbordingCrawledDataModel = require("../models/onbordingCrawledDataModel");
 const KeywordDumpModel = require("../models/keywordDumpModel");
+const { UNABLE_TO_GET_DATA } = require("../constants/errorMessageConstants/dashboardController")
 const { validateOnbordingCrawledData,
     validateManyOnbordingCrawledData
 } = require("../validate/validateOnbordingCrawledData");
 const AppError = require("../utils/errorHandling/AppError");
 exports.getOnbordingCrawledData = async (req, res, next) => {
     try {
-        const crolledData = await OnbordingCrawledDataModel.find();
-        res.status(200).json({
-            status: "success",
-            data: {
-                crolledData
-            }
-        });
-    } catch (error) {
-        res.status(400).json({
-            status: "fail",
-            data: {
-                error
-            }
-        });
-    }
-};
-
-exports.getSellerNames = async (req, res, next) => {
-    try {
+        const crawled_data_array = await OnbordingCrawledDataModel.find();
         const sellerArrary = await OnbordingCrawledDataModel.aggregate([
             {
                 $group: {
@@ -44,24 +27,6 @@ exports.getSellerNames = async (req, res, next) => {
         for (let seller of sellerArrary) {
             seller_arrary.push(seller.seller);
         }
-        res.status(200).json({
-            status: "success",
-            data: {
-                seller_arrary
-            }
-        })
-    } catch (error) {
-        res.status(400).json({
-            status: "fail",
-            data: {
-                error
-            }
-        });
-    }
-}
-
-exports.getKeywords = async (req, res, next) => {
-    try {
         const keywordArrary = await KeywordDumpModel.aggregate([
             {
                 $group: {
@@ -81,21 +46,19 @@ exports.getKeywords = async (req, res, next) => {
         for (let keyword of keywordArrary) {
             keyword_arrary.push(keyword.keyword);
         }
+
         res.status(200).json({
             status: "success",
             data: {
+                crawled_data_array,
+                seller_arrary,
                 keyword_arrary
             }
-        })
-    } catch (error) {
-        res.status(400).json({
-            status: "fail",
-            data: {
-                error
-            }
         });
+    } catch (error) {
+        return next(new AppError(400, UNABLE_TO_GET_DATA));
     }
-}
+};
 
 exports.createOnbordingCrawledData = async (req, res, next) => {
     const value = await validateOnbordingCrawledData(req.body);
