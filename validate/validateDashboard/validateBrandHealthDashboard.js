@@ -1,8 +1,9 @@
 const Joi = require("joi");
 exports.validateBrandHealthDashboardBody = async (body) => {
     const schema = Joi.object({
-       start_date:Joi.date().required(),
-       end_date:Joi.date().required()
+        start_date: Joi.date().required(),
+        end_date: Joi.date().required(),
+        brand_id: Joi.string().required()
     });
     try {
         const value = await schema.validateAsync(body);

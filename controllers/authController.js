@@ -2,6 +2,7 @@ const UserModel = require("../models/userModel");
 const AppError = require("../utils/errorHandling/AppError");
 const { validateSetPasswordBody,
     validateLogIn,
+    validatePowertBiLogIn,
     validateGenerateOtpBody
 } = require("../validate/validateAuth");
 const { checkOtp } = require("../utils/auth/otp");
@@ -104,6 +105,7 @@ exports.logIn = async (req, res, next) => {
                     email: user.email,
                     first_name: user.first_name,
                     last_name: user.last_name,
+                    user_type: user.user_type
                 },
             }
         });
@@ -113,6 +115,55 @@ exports.logIn = async (req, res, next) => {
     }
 };
 
+exports.powerBiLogIn = async (req, res, next) => {
+    const { power_bi_user_id, password } = req.body;
+    try {
+        const value = await validatePowertBiLogIn(req.body);
+        if (!value.status) {
+            next(new AppError(400, value.message));
+            return;
+        }
+        const user = await UserModel.findOne({ power_bi_user_id });
+        if (!user) {
+            return next(new AppError(404, `User does not exist with this ${power_bi_user_id} user id.`));
+        }
+        if (!user.hashed_password) {
+            return next(new AppError(400, YOU_HAVE_NOT_CREATED_PASSWORD_YET));
+
+        }
+        const { status, message } = await checkPassword({
+            hashedPassword: user.hashed_password,
+            password,
+        });
+        if (!status) {
+            return next(new AppError(401, message));
+
+        }
+        const tokenObj = await getJwt(user._id);
+        if (!tokenObj.status) {
+            return next(new AppError(500, tokenObj.message));
+
+        }
+        const { token } = tokenObj;
+        // res.cookie("authToken", token, { maxAge: 26000000 });
+        res.status(200).json({
+            status: "success",
+            data: {
+                message: "You are logged in successfully.",
+                token,
+                // user: {
+                //     email: user.email,
+                //     first_name: user.first_name,
+                //     last_name: user.last_name,
+                //     user_type: user.user_type
+                // },
+            }
+        });
+    } catch (error) {
+        console.log(error)
+        return next(new AppError(500, INTERNAL_SERVER_ERROR));
+    }
+};
 
 exports.generateOtp = async (req, res, next) => {
     const { email } = req.body;
@@ -158,7 +209,6 @@ exports.protectRoute = async (req, res, next) => {
     const { token } = req.headers;
     if (!token) {
         return next(new AppError(401, "You have been logged out, please login again."));
-
     }
     const value = await verifyJwt(token);
     if (!value.status) {
@@ -187,7 +237,6 @@ exports.protectRoute = async (req, res, next) => {
     req.user = user;
     next();
 };
-
 
 exports.restrictTo = (...userTypes) => {
     return (req, res, next) => {

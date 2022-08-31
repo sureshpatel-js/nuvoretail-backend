@@ -13,6 +13,12 @@ const UserSchema = new Schema({
     email: {
         type: String,
     },
+    power_bi_config_id: {
+        type: Schema.Types.ObjectId
+    },
+    power_bi_user_id: {
+        type: String
+    },
     company_id: {
         type: Schema.Types.ObjectId
     },

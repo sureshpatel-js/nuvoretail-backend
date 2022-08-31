@@ -2,7 +2,8 @@ const express = require('express');
 const app = express();
 const cookieParser = require('cookie-parser');
 const cors = require("cors");
-const port = process.env.PORT || 3000;
+require('dotenv').config()
+const port = process.env.PORT || 5000;
 //Router Imports
 const onbordingCrawledDataRoute = require("./routers/onbordingCrawledDataRoute");
 const clientMonthlyConfigRoute = require("./routers/clientMonthlyConfigRoute");
@@ -13,6 +14,7 @@ const sentimentRoute = require("./routers/sentimentRoute");
 const brandHealthRoute = require("./routers/brandHealthRoute")
 const brandhealthDashboardRoute = require("./routers/dashboardRoute/brandhealthDashboardRoute");
 const productRoute = require("./routers/productRoute");
+const powerBiRoute = require("./routers/powerBi/powerBiRoute")
 //db connection
 const mongodbConnection = require("./db/mongodb");
 mongodbConnection();
@@ -27,7 +29,8 @@ app.use("/osa", osaRoute);
 app.use("/sentiment", sentimentRoute);
 app.use("/brandHealth", brandHealthRoute);
 app.use("/dashboard/brandHealth", brandhealthDashboardRoute);
-app.use("/product", productRoute)
+app.use("/product", productRoute);
+app.use("/powerBi", powerBiRoute);
 
 
 
@@ -48,7 +51,7 @@ app.use((err, req, res, next) => {
     res.status(status).json({
         status: "fail",
         data: {
-            error: message
+            message
         }
 
     });

@@ -8,7 +8,9 @@ exports.createClientMonthlyConfig = async (req, res, next) => {
         return;
     }
     try {
-        const clientMonthlyConfig = await ClientMonthlyConfigModel.create(req.body);
+        const authUser = req.user._id;
+        const createdAt = new Date();
+        const clientMonthlyConfig = await ClientMonthlyConfigModel.create({ ...req.body, created_by: authUser, created_at: createdAt });
         res.status(201).json({
             status: "success",
             clientMonthlyConfig
@@ -24,7 +26,9 @@ exports.updateClientMonthlyConfig = async (req, res, next) => {
     }
     //while updating also inclue company id from user for more security
     try {
-        const clientMonthlyConfig = await ClientMonthlyConfigModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const authUser = req.user._id;
+        const updatedAt = new Date();
+        const clientMonthlyConfig = await ClientMonthlyConfigModel.findByIdAndUpdate(req.params.id, { ...req.body, updated_by: authUser, updated_at: updatedAt }, { new: true });
         res.status(201).json({
             status: "success",
             data: {

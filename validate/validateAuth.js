@@ -36,22 +36,32 @@ exports.validateLogIn = async (body) => {
         return { status: false, message: error.message };
     }
 };
-
+exports.validatePowertBiLogIn = async (body) => {
+    const schema = Joi.object({
+        power_bi_user_id: Joi.string().required(),
+        password: Joi.string().required(),
+    });
+    try {
+        const value = await schema.validateAsync(body);
+        return { status: true, body: value };
+    } catch (error) {
+        return { status: false, message: error.message };
+    }
+};
 
 exports.validateGenerateOtpBody = async (body) => {
     const schema = Joi.object({
-      email: Joi.string()
-        .required()
-        .email({
-          minDomainSegments: 2,
-          tlds: { allow: ["com", "net"] },
-        }),
+        email: Joi.string()
+            .required()
+            .email({
+                minDomainSegments: 2,
+                tlds: { allow: ["com", "net"] },
+            }),
     });
     try {
-      const value = await schema.validateAsync(body);
-      return { status: true, body: value };
+        const value = await schema.validateAsync(body);
+        return { status: true, body: value };
     } catch (error) {
-      return { status: false, message: error.message };
+        return { status: false, message: error.message };
     }
-  };
-  
+};

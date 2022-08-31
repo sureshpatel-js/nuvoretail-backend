@@ -3,5 +3,6 @@ const router = express.Router();
 const authController = require("../controllers/authController");
 router.route("/setPassword").post(authController.setPassword);
 router.route("/login").post(authController.logIn);
+router.route("/powerBiLogIn").post(authController.powerBiLogIn);
 router.route("/generateOtp").post(authController.generateOtp);
 module.exports = router;

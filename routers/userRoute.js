@@ -4,6 +4,10 @@ const authController = require("./../controllers/authController");
 const { CLIENT_ADMIN, ENLYTICAL_ADMIN } = require("../constants/constants")
 const router = express.Router();
 
+router.
+    route("/").
+    get(authController.protectRoute, userController.getMyObj)
+
 router
     .route("/clientAdminSignUp")
     .post(userController.clientAdminSignUp);

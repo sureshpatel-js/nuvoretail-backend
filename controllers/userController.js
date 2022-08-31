@@ -327,10 +327,20 @@ exports.createInternalUser = async (req, res, next) => {
         return next(new AppError(500, UNABLE_TO_CREATE_USER));
     }
     session.endSession();
-
 }
 
 
 exports.getMyObj = async (req, res, next) => {
-    console.log(req.user);
+    const { first_name, last_name, user_type, email } = req.user;
+    res.status(200).json({
+        status: "success",
+        data: {
+            user: {
+                first_name,
+                last_name,
+                user_type,
+                email
+            }
+        }
+    })
 }

@@ -2,6 +2,8 @@ const BrandHealthModel = require("../../models/brandHealthModel");
 const ProductMasterModel = require("../../models/productMasterModel");
 const ProductAdsModel = require("../../models/productAdsModel");
 const OsaModel = require("../../models/osaModel");
+const OnbordingCrawledDataModel = require("../../models/onbordingCrawledDataModel");
+const { getPlatformCodes } = require("../commonFunctionController");
 const AppError = require("../../utils/errorHandling/AppError");
 const { validateBrandHealthDashboardBody } = require("../../validate/validateDashboard/validateBrandHealthDashboard");
 const { calculateChange, calculateProductDeal } = require("../../utils/commonFunction/dashboardFunction");
@@ -13,10 +15,10 @@ const ProductAds = require("../../models/productAdsModel");
 exports.getStaticData = async (req, res, next) => {
     const value = await validateBrandHealthDashboardBody(req.body);
     if (!value.status) {
-        next(new AppError(400, value.message));
-        return;
+        return next(new AppError(400, value.message));
+
     }
-    const { start_date, end_date } = req.body;
+    const { start_date, end_date, brand_id } = req.body;
     const startDate = new Date(start_date);
     const endDate = new Date(end_date);
     try {
@@ -33,7 +35,7 @@ exports.getStaticData = async (req, res, next) => {
                         time_stamp: "$time_stamp",
                         platform_code: "$platform_code"
                     },
-                    available_location_no: { $sum: { $cond: { if: { $eq: ["$status", true] }, then: 1, else: 0 } } },
+                    available_location_no: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$platform_code", "$defaultasin"] }] }, then: 1, else: 0 } } },
                     total_doc_no: { $sum: 1 }
                 }
             },
@@ -70,14 +72,15 @@ exports.getStaticData = async (req, res, next) => {
                 $group: {
                     _id: "$platform_code",
                     deals_at_location: { $sum: { $cond: { if: { $ne: ["$deal", null] }, then: 1, else: 0 } } },
-                    sum_of_buy_box: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$authorized_seller", true] }] }, then: 1, else: 0 } } },
+                    sum_of_buy_box: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$platform_code", "$defaultasin"] }, { $eq: ["$authorized_seller", true] }] }, then: 1, else: 0 } } },
+                    total_available_no: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$platform_code", "$defaultasin"] }] }, then: 1, else: 0 } } },
                     total_doc_no: { $sum: 1 },
                 }
             },
             {
                 $project: {
                     deals_at_location: "$deals_at_location",
-                    buy_box_percentage: { $multiply: [{ $divide: ["$sum_of_buy_box", "$total_doc_no"] }, 100] },
+                    buy_box_percentage: { $multiply: [{ $divide: ["$sum_of_buy_box", "$total_available_no"] }, 100] },
                 }
             },
             {
@@ -196,7 +199,13 @@ exports.getStaticData = async (req, res, next) => {
                 },
             }
         ])
-        const brand_and_category = await ProductMasterModel.find().select("sub_brand category asin")
+
+        //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^get masters^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        const platform_code_array = await getPlatformCodes("2022-09-12T00:00:00.000+00:00", brand_id);
+        const brand_and_category = await OnbordingCrawledDataModel.find({ platform_code: { $in: platform_code_array } }).select("brand_name main_cat platform_code");
+
+
+
 
         let deals_on_num_of_products = 0;
         let product_below_eighty_percentage = 0;
@@ -262,14 +271,16 @@ exports.getStaticData = async (req, res, next) => {
 
 
     } catch (error) {
-        console.log(error);
+        console.log(error)
         return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
 
 exports.getBrandWiseStatus = async (req, res, next) => {
-    const { time_stamp } = req.body;
+
+    const { time_stamp, brand_id } = req.body;
+
     const yesterday1 = new Date(time_stamp);
     const dayBeforeYesterday = new Date(time_stamp);
     yesterday1.setDate(yesterday1.getDate() - 1);
@@ -278,12 +289,8 @@ exports.getBrandWiseStatus = async (req, res, next) => {
     try {
 
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^get masters^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        let platform_code_array = [];
-        const product_master = await ProductMasterModel.find().select("asin title sub_category mrp");
-        for (let product of product_master) {
-            platform_code_array.push(product.asin);
-        }
-
+        const platform_code_array = await getPlatformCodes("2022-09-12T00:00:00.000+00:00", brand_id);
+        const product_master = await OnbordingCrawledDataModel.find({ platform_code: { $in: platform_code_array } }).select("platform_code pname sub_cat mrp");
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^combine_osa_and_brandhealth_data^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         const osaArray = await OsaModel.aggregate([
             {
@@ -450,7 +457,7 @@ exports.getBrandWiseStatus = async (req, res, next) => {
         for (let osaObj of osaArray) {
             const { _id, sub_cat_rank, main_cat_rank, sp, buy_box_percentage } = osaObj;
             const bhObj = brandHealthArray.filter(bhEl => bhEl._id === _id);
-            const [productMasterObje] = product_master.filter(pmEl => pmEl.asin === _id);
+            const [productMasterObje] = product_master.filter(pmEl => pmEl.platform_code === _id);
             const [yesterdayOsaObj] = yesterdayOsaArray.filter(yoEl => yoEl._id === _id);
             let promo = null;
             let yesterdays_promo = null;
@@ -654,12 +661,11 @@ exports.getBrandWiseStatus = async (req, res, next) => {
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^RESULTS^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         let product_wise_status_array = []
         for (let product of product_master) {
-            const { title, sub_category } = product;
+            const { pname, sub_cat, platform_code } = product;
             let product_obj = {
-                title,
-                sub_category
+                title: pname,
+                sub_category: sub_cat
             };
-            const platform_code = product.asin;
             const [combine_osa_and_brandhealth_data_obj] = combine_osa_and_brandhealth_data.filter(el => el.platform_code === platform_code);
             if (combine_osa_and_brandhealth_data_obj) {
                 product_obj = {
@@ -693,17 +699,23 @@ exports.getBrandWiseStatus = async (req, res, next) => {
             product_wise_status_array.push(product_obj);
         }
 
+        console.log(platform_code_array)
 
-        const master_brands = await ProductMasterModel.aggregate([
+        const master_brands = await OnbordingCrawledDataModel.aggregate([
+            {
+                $match: {
+                    platform_code: { $in: platform_code_array }
+                }
+            },
             {
                 $group: {
-                    _id: "$sub_brand",
-                    platform_codes: { $push: "$asin" }
+                    _id: "$brand_name",
+                    platform_codes: { $push: "$platform_code" }
 
                 }
             }
         ])
-
+        console.log(master_brands)
 
         let brand_wise_status_array = [];
 
@@ -851,11 +863,12 @@ exports.getBrandWiseStatus = async (req, res, next) => {
 
     } catch (error) {
         console.log(error);
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
 exports.getProductWiseStatus = async (req, res, next) => {
-    const { time_stamp } = req.body;
+    const { time_stamp, brand_id } = req.body;
     const yesterday1 = new Date(time_stamp);
     const dayBeforeYesterday = new Date(time_stamp);
     yesterday1.setDate(yesterday1.getDate() - 1);
@@ -864,12 +877,8 @@ exports.getProductWiseStatus = async (req, res, next) => {
     try {
 
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^get masters^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        let platform_code_array = [];
-        const product_master = await ProductMasterModel.find().select("asin title sub_category mrp");
-        for (let product of product_master) {
-            platform_code_array.push(product.asin);
-        }
-        console.log(platform_code_array)
+        const platform_code_array = await getPlatformCodes("2022-09-12T00:00:00.000+00:00", brand_id);
+        const product_master = await OnbordingCrawledDataModel.find({ platform_code: { $in: platform_code_array } }).select("platform_code pname sub_cat mrp");
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^combine_osa_and_brandhealth_data^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         const osaArray = await OsaModel.aggregate([
             {
@@ -1041,7 +1050,7 @@ exports.getProductWiseStatus = async (req, res, next) => {
         for (let osaObj of osaArray) {
             const { _id, available, sub_cat_rank, main_cat_rank, sp, avg_delivery_days, max_delivery_days, deal_array, sub_cat_array, buy_box_percentage } = osaObj;
             const bhObj = brandHealthArray.filter(bhEl => bhEl._id === _id);
-            const [productMasterObje] = product_master.filter(pmEl => pmEl.asin === _id);
+            const [productMasterObje] = product_master.filter(pmEl => pmEl.platform_code === _id);
             const [yesterdayOsaObj] = yesterdayOsaArray.filter(yoEl => yoEl._id === _id);
             let promo = null;
             let promo_change = null;
@@ -1247,10 +1256,10 @@ exports.getProductWiseStatus = async (req, res, next) => {
         //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^RESULTS^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         let product_wise_status_array = []
         for (let product of product_master) {
-            const { title, sub_category } = product;
+            const { pname, sub_cat } = product;
             let product_obj = {
-                title,
-                sub_category
+                title: pname,
+                sub_category: sub_cat
             };
             const platform_code = product.asin;
             const [combine_osa_and_brandhealth_data_obj] = combine_osa_and_brandhealth_data.filter(el => el.platform_code === platform_code);
@@ -1312,7 +1321,8 @@ exports.getProductWiseStatus = async (req, res, next) => {
 
 
     } catch (error) {
-        console.log(error);
+        console.log(error)
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1364,7 +1374,7 @@ exports.getAdvSalesAndAcos = async (req, res, next) => {
             }
         })
     } catch (error) {
-
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1389,8 +1399,8 @@ exports.getAvailabilityAndBuybox = async (req, res, next) => {
                     _id: "$time_stamp",
                     available_location_no: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$platform_code", "$defaultasin"] }] }, then: 1, else: 0 } } },
                     total_doc_no: { $sum: 1 },
-                    sum_of_buy_box: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$authorized_seller", true] }] }, then: 1, else: 0 } } },
-                    total_available_no: { $sum: { $cond: { if: { $eq: ["$status", true] }, then: 1, else: 0 } } },
+                    sum_of_buy_box: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$platform_code", "$defaultasin"] }, { $eq: ["$authorized_seller", true] }] }, then: 1, else: 0 } } },
+                    total_available_no: { $sum: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$platform_code", "$defaultasin"] }] }, then: 1, else: 0 } } },
 
                 },
             },
@@ -1415,7 +1425,7 @@ exports.getAvailabilityAndBuybox = async (req, res, next) => {
             }
         })
     } catch (error) {
-
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1475,7 +1485,7 @@ exports.getCityWiseDeliveryDays = async (req, res, next) => {
             }
         })
     } catch (error) {
-
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1520,7 +1530,7 @@ exports.getAdvSpendsAndCpc = async (req, res, next) => {
             }
         })
     } catch (error) {
-
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1568,7 +1578,7 @@ exports.getCtrAndConversion = async (req, res, next) => {
             }
         })
     } catch (error) {
-
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 exports.getClicksOrdersAndImpressions = async (req, res, next) => {
@@ -1613,7 +1623,7 @@ exports.getClicksOrdersAndImpressions = async (req, res, next) => {
             }
         })
     } catch (error) {
-
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1674,7 +1684,7 @@ exports.getPrice = async (req, res, next) => {
             }
         })
     } catch (error) {
-
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1751,7 +1761,7 @@ exports.getDiscount = async (req, res, next) => {
             }
         })
     } catch (error) {
-
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1798,7 +1808,7 @@ exports.getCategoryAndShelfRank = async (req, res, next) => {
             }
         })
     } catch (error) {
-        console.log(error)
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1890,7 +1900,7 @@ exports.getCountOfTopAndRecentReviews = async (req, res, next) => {
 
 
     } catch (error) {
-        console.log(error);
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }
 
@@ -1947,6 +1957,55 @@ exports.getRatingsAndReviews = async (req, res, next) => {
             }
         })
     } catch (error) {
-        console.log(error)
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
+    }
+}
+
+
+exports.getTodaysProductWithoutBuyBox = async (req, res, next) => {
+    const { time_stamp } = req.body;
+    const date = new Date(time_stamp);
+    try {
+        const productArray = await OsaModel.aggregate([
+            {
+                $match: {
+                    time_stamp: date,
+                    platform_code: { $in: req.body.platform_code }
+                }
+            }
+            ,
+            {
+                $group: {
+                    _id: "$platform_code",
+                    avg: { $push: { $cond: { if: { $and: [{ $eq: ["$status", true] }, { $eq: ["$platform_code", "$defaultasin"] }, { $eq: ["$authorized_seller", true] }] }, then: 1, else: 0 } } },
+                    location: { $push: { seller: "$seller", location: "$location" } }
+                },
+            },
+            {
+                $project: {
+                    avg: { $avg: "$avg" },
+                    location: "$location"
+                }
+            },
+
+        ]);
+        let product_array = [];
+
+        for (let product of productArray) {
+            if (product.avg < 1) {
+                product_array.push({
+                    platform_code: product._id,
+                    location: product.location
+                })
+            }
+        }
+        res.status(200).json({
+            status: "success",
+            data: {
+                product_array
+            }
+        })
+    } catch (error) {
+        return next(new AppError(500, UNABLE_TO_GET_DATA));
     }
 }

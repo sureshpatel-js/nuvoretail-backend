@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const ClientMonthlyConfigSchema = new Schema({
@@ -18,15 +17,23 @@ const ClientMonthlyConfigSchema = new Schema({
         type: Array
     },
     created_by: {
-        type: Date
+        type: Schema.Types.ObjectId
     },
     created_at: {
         type: Date
     },
+    created_for_month: {
+        type: Date
+    },
     udpdated_at: {
         type: Date
-    }
-
+    },
+    updated_by: {
+        type: Schema.Types.ObjectId
+    },
+    brand_id: {
+        type: Schema.Types.ObjectId
+    },
 });
 
 

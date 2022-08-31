@@ -5,7 +5,7 @@ exports.validateClientMonthlyConfig = async (body, reqType) => {
     if (reqType === "post") {
         schema = Joi.object({
             product_list: Joi.array().items(Joi.object({
-                product_code: Joi.string().required(),
+                platform_code: Joi.string().required(),
                 priority: Joi.boolean().required()
             })).required(),
             authorized_seller_list: Joi.array().items(Joi.object({
@@ -27,12 +27,13 @@ exports.validateClientMonthlyConfig = async (body, reqType) => {
                 priority: Joi.boolean().required(),
                 close_competitor: Joi.boolean().required(),
             })).required(),
-            created_at: Joi.date().required(),
+            brand_id: Joi.string().required(),
+            created_for_month:Joi.date().required()
         });
     } else if (reqType === "put") {
         schema = Joi.object({
             product_list: Joi.array().items(Joi.object({
-                product_code: Joi.string().required(),
+                platform_code: Joi.string().required(),
                 priority: Joi.boolean().required()
             })).required(),
             authorized_seller_list: Joi.array().items(Joi.object({
@@ -54,7 +55,8 @@ exports.validateClientMonthlyConfig = async (body, reqType) => {
                 priority: Joi.boolean().required(),
                 close_competitor: Joi.boolean().required(),
             })).required(),
-            updated_at: Joi.date().required(),
+            brand_id: Joi.string().required(),
+            created_for_month:Joi.date().required()
         });
     }
     try {

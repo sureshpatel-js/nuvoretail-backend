@@ -58,6 +58,11 @@ router
     .route("/getRatingsAndReviews")
     .post(brandHealthDashboardController.getRatingsAndReviews);
 
+router
+    .route("/getTodaysProductWithoutBuyBox")
+    .post(brandHealthDashboardController.getTodaysProductWithoutBuyBox);
+
+
 
 module.exports = router;
 
