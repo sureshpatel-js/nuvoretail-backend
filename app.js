@@ -13,6 +13,8 @@ const osaRoute = require("./routers/osaRoute");
 const sentimentRoute = require("./routers/sentimentRoute");
 const brandHealthRoute = require("./routers/brandHealthRoute")
 const brandhealthDashboardRoute = require("./routers/dashboardRoute/brandhealthDashboardRoute");
+const campaignReportRoute = require("./routers/dashboardRoute/campaignReportRoute");
+
 const productRoute = require("./routers/productRoute");
 const powerBiRoute = require("./routers/powerBi/powerBiRoute")
 //db connection
@@ -29,6 +31,7 @@ app.use("/osa", osaRoute);
 app.use("/sentiment", sentimentRoute);
 app.use("/brandHealth", brandHealthRoute);
 app.use("/dashboard/brandHealth", brandhealthDashboardRoute);
+app.use("/dashboard/advertisingReport", campaignReportRoute);
 app.use("/product", productRoute);
 app.use("/powerBi", powerBiRoute);
 
