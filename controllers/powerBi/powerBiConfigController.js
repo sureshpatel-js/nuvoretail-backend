@@ -10,13 +10,37 @@ exports.createPowerBiConfig = async (req, res, next) => {
         res.status(200).json({
             status: "success",
             data: {
-                message: "success"
+                newPowerBiConfig
             }
         })
     } catch (error) {
         next(new AppError(400, "Unable to create powerbi config."))
     }
 }
+
+exports.getPowerBiDashboardMenuArray = async (req, res, next) => {
+    try {
+        const { brand_id } = req.user;
+        console.log(brand_id)
+        const dashboard_menu_array = await PowerBiConfigModel.find({ brand_id }).select("dashboard_name");
+        res.status(200).json({
+            status: "success",
+            data: {
+                dashboard_menu_array
+            }
+        })
+    } catch (error) {
+        next(new AppError(400, "Unable to get powerbi dashboard menu."));
+    }
+}
+
+
+
+
+
+
+
+
 // Configurations of the embedded reports
 class PowerBiReportDetails {
     constructor(reportId, reportName, embedUrl) {
@@ -178,11 +202,11 @@ async function getEmbedParamsForSingleReport(workspaceId, reportId, additionalDa
 exports.getEmbedInfo = async (req, res, next) => {
     // Get the Report Embed details
     try {
-        const { power_bi_config_id } = req.user;
-        if (!power_bi_config_id) {
-            return next(new AppError(401, "Your account is not linked with power bi, please contact with admin."))
+        const { id } = req.params;
+        if (!id) {
+            return next(new AppError(401, "Please provide valid id."))
         }
-        const power_bi_config_obj = await PowerBiConfigModel.findById(power_bi_config_id);
+        const power_bi_config_obj = await PowerBiConfigModel.findById(id);
         if (!power_bi_config_obj) {
             return next(new AppError(400, INTERNAL_SERVER_ERROR))
         }
@@ -210,4 +234,31 @@ exports.getEmbedInfo = async (req, res, next) => {
         })
     }
 }
+exports.getEmbedInfoByGroupAndReportId = async (req, res, next) => {
+    // Get the Report Embed details
+    try {
+        const { group_id, report_id } = req.body;
+        console.log(group_id, report_id)
+        // Get report details and embed token
+        const embedParams = await getEmbedParamsForSingleReport(group_id, report_id);
 
+        let data = {
+            'accessToken': embedParams.embedToken.token,
+            'embedUrl': embedParams.reportsDetail,
+            'expiry': embedParams.embedToken.expiration,
+            'status': 200
+        };
+        res.status(200).json({
+            status: "success",
+            data
+        })
+    } catch (err) {
+        res.status(400).json({
+            status: "fail",
+            data: {
+                message: `Error while retrieving report embed details\r\n${err.statusText}\r\nRequestId: \n${err.headers.get('requestid')}`
+            }
+
+        })
+    }
+}

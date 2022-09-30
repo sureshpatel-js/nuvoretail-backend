@@ -7,6 +7,12 @@ router
     .route("/")
     .post(authController.protectRoute, authController.restrictTo(ENLYTICAL_ADMIN), powerBiConfigController.createPowerBiConfig);
 router
-    .route("/getEmbedInfo").get(authController.protectRoute, authController.restrictTo(CLIENT_ADMIN, ENLYTICAL_ADMIN), powerBiConfigController.getEmbedInfo)
+    .route("/getEmbedInfo/:id").get(authController.protectRoute, authController.restrictTo(CLIENT_ADMIN, ENLYTICAL_ADMIN), powerBiConfigController.getEmbedInfo)
+router
+    .route("/getPowerBiDashboardMenuArray")
+    .get(authController.protectRoute, authController.restrictTo(CLIENT_ADMIN, ENLYTICAL_ADMIN), powerBiConfigController.getPowerBiDashboardMenuArray);
+router
+    .route("/getEmbedInfoByGroupAndReportId")
+    .post(authController.protectRoute, authController.restrictTo(CLIENT_ADMIN, ENLYTICAL_ADMIN), powerBiConfigController.getEmbedInfoByGroupAndReportId)
 
 module.exports = router;

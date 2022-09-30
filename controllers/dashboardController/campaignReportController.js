@@ -1,7 +1,7 @@
 const CampaignReportModel = require("../../models/campaignReportModel");
 const DashboardDataModel = require("../../models/dashboardDataModel");
-const { calculateChange } = require("../../utils/commonFunction/dashboardFunction");
-const { calculatePercentageChange, divTwoNum, roundOffToTwoDecimal, getMontheInText } = require("../../utils/commonFunction/commonFunction");
+const { calculateChange, calculateNegativeOfChange } = require("../../utils/commonFunction/dashboardFunction");
+const { calculatePercentageChange, divTwoNum, roundOffToTwoDecimal, getMontheInText, getYesterdayAndFirstDayOfMonth, getDaysInMonth } = require("../../utils/commonFunction/commonFunction");
 exports.getTileData = async (req, res, next) => {
     const { time_stamp, campaign_type_array } = req.body;
     const yesterday = new Date(time_stamp);
@@ -673,7 +673,7 @@ exports.getCategoryTableData = async (req, res, next) => {
         ])
 
 
-        const category_tabel_data_array = data.map(obj => {
+        const category_table_data_array = data.map(obj => {
             const {
                 category,
                 //Sales
@@ -701,13 +701,13 @@ exports.getCategoryTableData = async (req, res, next) => {
             const sales_flow = calculateChange(yesterdays_sales - day_before_yesterdays_sales);
             const sales_percentage_change = calculatePercentageChange(from_day_before_yesterday_pre_seven_days_avg_sales, yesterdays_sales);
             //Cost or Spend
-            const cost_flow = calculateChange(yesterdays_cost - day_before_yesterdays_cost);
+            const cost_flow = calculateNegativeOfChange(yesterdays_cost - day_before_yesterdays_cost);
             const cost_percentage_change = calculatePercentageChange(from_day_before_yesterday_pre_seven_days_avg_cost, yesterdays_cost);
             //ACOS
             const yesterdays_acos = (divTwoNum(yesterdays_cost, yesterdays_sales) * 100);
             const day_before_yesterdays_acos = divTwoNum(day_before_yesterdays_cost, day_before_yesterdays_sales) * 100;
             const from_day_before_yesterday_pre_seven_days_avg_acos = divTwoNum(from_day_before_yesterday_pre_seven_days_avg_cost, from_day_before_yesterday_pre_seven_days_avg_sales) * 100;
-            const acos_flow = calculateChange(yesterdays_acos - day_before_yesterdays_acos);
+            const acos_flow = calculateNegativeOfChange(yesterdays_acos - day_before_yesterdays_acos);
             const acos_percentage_change = calculatePercentageChange(from_day_before_yesterday_pre_seven_days_avg_acos, yesterdays_acos);
             //Orders
             const orders_flow = calculateChange(yesterdays_orders - day_before_yesterdays_orders);
@@ -719,7 +719,7 @@ exports.getCategoryTableData = async (req, res, next) => {
             const yesterdays_cpc = divTwoNum(yesterdays_cost, yesterdays_clicks);
             const day_before_yesterdays_cpc = divTwoNum(day_before_yesterdays_cost, day_before_yesterdays_clicks);
             const from_day_before_yesterday_pre_seven_days_avg_cpc = divTwoNum(from_day_before_yesterday_pre_seven_days_avg_cost, from_day_before_yesterday_pre_seven_days_avg_clicks);
-            const cpc_flow = calculateChange(yesterdays_cpc - day_before_yesterdays_cpc);
+            const cpc_flow = calculateNegativeOfChange(yesterdays_cpc - day_before_yesterdays_cpc);
             const cpc_percentage_change = calculatePercentageChange(from_day_before_yesterday_pre_seven_days_avg_cpc, yesterdays_cpc);
             //Impressions
             const impressions_flow = calculateChange(yesterdays_impressions, day_before_yesterdays_impressions);
@@ -781,7 +781,7 @@ exports.getCategoryTableData = async (req, res, next) => {
         res.status(200).json({
             status: "success",
             data: {
-                category_tabel_data_array
+                category_table_data_array
             }
         })
     } catch (error) {
@@ -789,4 +789,196 @@ exports.getCategoryTableData = async (req, res, next) => {
     }
 
 
+}
+const categoryWiseTarget = [
+    { category: "Instant Coffee", ad_sales: 675036, cost: 289557, time_stamp: "" },
+    { category: "Hampers & Gourmet Gifts", ad_sales: 315324, cost: 99756, time_stamp: "" },
+    { category: "Cold Brew", ad_sales: 293266, cost: 184387, time_stamp: "" },
+    { category: "Hot Brew", ad_sales: 242807, cost: 116309, time_stamp: "" },
+    { category: "Ground Coffee", ad_sales: 131879, cost: 84690, time_stamp: "" },
+    { category: "Coffee Maker", ad_sales: 52503, cost: 57097, time_stamp: "" },
+    { category: "Filter coffee", ad_sales: 17551, cost: 6912, time_stamp: "" },
+    { category: "Roasted coffee beans", ad_sales: 13951, cost: 9305, time_stamp: "" },
+    { category: "Cold Coffee", ad_sales: 11436, cost: 10607, time_stamp: "" },
+]
+
+exports.getTargetsTableData = async (req, res, next) => {
+    const { time_stamp, campaign_type_array, category_array } = req.body;
+    const { yesterday, firstDayOfMonth } = getYesterdayAndFirstDayOfMonth(time_stamp);
+    try {
+        const data = await CampaignReportModel.aggregate([
+            {
+                $match: {
+                    time_stamp: { $gte: firstDayOfMonth, $lte: yesterday },
+                    campaign_type: { $in: campaign_type_array },
+                    category: { $in: category_array }
+                }
+            },
+            {
+                $group: {
+                    _id: "$category",
+                    //Sales
+                    sales: {
+                        $sum: "$attributed_sales_14_d"
+                    },
+                    //cost or spend
+                    cost: {
+                        $sum: "$cost"
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: "$_id",
+                    category: "$_id",
+                    sales: { $round: ["$sales", 2] },
+                    cost: { $round: ["$cost", 2] },
+                    acos: { $round: [{ $multiply: [{ $cond: { if: { $ne: ["$sales", 0] }, then: { $divide: ["$cost", "$sales"] }, else: 0 } }, 100] }, 2] }
+
+                }
+            },
+            {
+                $unset: ["_id"]
+            },
+            {
+                $sort: { "category": 1 }
+            }
+        ]);
+        const divNum = getDaysInMonth(yesterday);
+        const MultiplyNum = new Date(yesterday).getDate();
+        const targets_table_data_array = data.map(obj => {
+            const { category, sales, cost, acos } = obj;
+
+            const [masterCategoryWiseTarget] = categoryWiseTarget.filter(mObj => mObj.category === category);
+
+            const target_sales = roundOffToTwoDecimal(divTwoNum(masterCategoryWiseTarget.ad_sales, divNum) * MultiplyNum);
+            const target_cost = roundOffToTwoDecimal(divTwoNum(masterCategoryWiseTarget.cost, divNum) * MultiplyNum);
+            const target_acos = roundOffToTwoDecimal(divTwoNum(target_cost, target_sales) * 100);
+
+            const salesDiff = sales - target_sales;
+            const costDiff = cost - target_cost;
+            const acosDiff = acos - target_acos;
+            const sales_flow = calculateChange(salesDiff);
+            const cost_flow = calculateNegativeOfChange(costDiff);
+            const acos_flow = calculateNegativeOfChange(acosDiff);
+            return {
+                category,
+                sales,
+                target_sales,
+                sales_flow,
+                cost,
+                target_cost,
+                cost_flow,
+                acos,
+                target_acos,
+                acos_flow
+            }
+        })
+
+        res.status(200).json({
+            status: "success",
+            data: {
+                targets_table_data_array
+            }
+        })
+    } catch (error) {
+        console.log(error)
+    }
+
+
+}
+
+exports.getRemainingTargetsTileData = async (req, res, next) => {
+    const { time_stamp, campaign_type_array, category_array } = req.body;
+    const { yesterday, firstDayOfMonth } = getYesterdayAndFirstDayOfMonth(time_stamp);
+    const dayBeforeYesterday = new Date(time_stamp);
+    dayBeforeYesterday.setDate(dayBeforeYesterday.getDate() - 2);
+
+    try {
+        const data = await CampaignReportModel.aggregate([
+            {
+                $match: {
+                    time_stamp: { $gte: firstDayOfMonth, $lte: yesterday },
+                    campaign_type: { $in: campaign_type_array },
+                    category: { $in: category_array }
+                }
+            },
+            {
+                $group: {
+                    _id: "$category",
+                    //Sales
+                    total_sales: {
+                        $sum: { $cond: { if: { $ne: ["$time_stamp", yesterday] }, then: "$attributed_sales_14_d", else: 0 } }
+
+                    },
+                    yesterdays_sales: {
+                        $sum: { $cond: { if: { $eq: ["$time_stamp", yesterday] }, then: "$attributed_sales_14_d", else: 0 } }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: "$_id",
+                    category: "$_id",
+                    total_sales: { $round: ["$total_sales", 2] },
+                    yesterdays_sales: { $round: ["$yesterdays_sales", 2] }
+                }
+            },
+            {
+                $unset: ["_id"]
+            },
+            {
+                $sort: { "category": 1 }
+            }
+        ]);
+        let yesterdays_targets_data_array;
+        const totalDays = getDaysInMonth(yesterday);
+        if (yesterday.getDate() === 1) {
+            yesterdays_targets_data_array = data.map(obj => {
+                const { category, yesterdays_sales } = obj;
+                const [masterCategoryWiseTarget] = categoryWiseTarget.filter(mObj => mObj.category === category);
+                const yesterdays_target_sales = roundOffToTwoDecimal(divTwoNum(masterCategoryWiseTarget.ad_sales, totalDays));
+                const salesDiff = yesterdays_sales - yesterdays_target_sales;
+                const yesterdays_sales_flow = calculateChange(salesDiff);
+                const sales_diff_percentage = roundOffToTwoDecimal(calculatePercentageChange(yesterdays_target_sales, yesterdays_sales))
+                return {
+                    category,
+                    yesterdays_sales,
+                    yesterdays_target_sales,
+                    yesterdays_sales_flow,
+                    sales_diff_percentage
+                }
+            })
+        } else {
+            const passedDays = dayBeforeYesterday.getDate();
+            const remainingDays = totalDays - passedDays;
+            yesterdays_targets_data_array = data.map(obj => {
+                const { category, yesterdays_sales, total_sales } = obj;
+                const [masterCategoryWiseTarget] = categoryWiseTarget.filter(mObj => mObj.category === category);
+                const remainingTargetSales = masterCategoryWiseTarget.ad_sales - total_sales;//What if remaining target sales is negative
+                const yesterdays_target_sales = roundOffToTwoDecimal(divTwoNum(remainingTargetSales, remainingDays));
+                const salesDiff = yesterdays_sales - yesterdays_target_sales;
+                const yesterdays_sales_flow = calculateChange(salesDiff);
+
+                const sales_diff_percentage = roundOffToTwoDecimal(calculatePercentageChange(yesterdays_target_sales, yesterdays_sales))
+                return {
+                    category,
+                    yesterdays_sales,
+                    yesterdays_target_sales,
+                    yesterdays_sales_flow,
+                    sales_diff_percentage
+                }
+            })
+        }
+
+        res.status(200).json({
+            status: "success",
+            data: {
+                yesterdays_targets_data_array
+
+            }
+        })
+    } catch (error) {
+        console.log(error)
+    }
 }

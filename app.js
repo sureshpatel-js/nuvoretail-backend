@@ -5,17 +5,18 @@ const cors = require("cors");
 require('dotenv').config()
 const port = process.env.PORT || 5000;
 //Router Imports
-const onbordingCrawledDataRoute = require("./routers/onbordingCrawledDataRoute");
+const clientProductDetailRoute = require("./routers/clientProductDetailRoute");
 const clientMonthlyConfigRoute = require("./routers/clientMonthlyConfigRoute");
 const userRoute = require("./routers/userRoute");
 const authRoute = require("./routers/authRoute");
 const osaRoute = require("./routers/osaRoute");
 const sentimentRoute = require("./routers/sentimentRoute");
 const brandHealthRoute = require("./routers/brandHealthRoute")
-const brandhealthDashboardRoute = require("./routers/dashboardRoute/brandhealthDashboardRoute");
+//const brandhealthDashboardRoute = require("./routers/dashboardRoute/brandhealthDashboardRoute");
 const campaignReportRoute = require("./routers/dashboardRoute/campaignReportRoute");
 
 const productRoute = require("./routers/productRoute");
+const clientSellerDetailRoute = require("./routers/clientSellerDetailRoute");
 const powerBiRoute = require("./routers/powerBi/powerBiRoute")
 //db connection
 const mongodbConnection = require("./db/mongodb");
@@ -26,13 +27,15 @@ app.use(express.json());
 app.use("/auth", authRoute);
 app.use("/user", userRoute);
 app.use("/clientMonthlyConfig", clientMonthlyConfigRoute);
-app.use("/onbordingCrawledData", onbordingCrawledDataRoute);
+app.use("/clientProductDetail", clientProductDetailRoute);
+app.use("/clientSellerDetail", clientSellerDetailRoute);
 app.use("/osa", osaRoute);
 app.use("/sentiment", sentimentRoute);
 app.use("/brandHealth", brandHealthRoute);
-app.use("/dashboard/brandHealth", brandhealthDashboardRoute);
+//app.use("/dashboard/brandHealth", brandhealthDashboardRoute);
 app.use("/dashboard/advertisingReport", campaignReportRoute);
 app.use("/product", productRoute);
+
 app.use("/powerBi", powerBiRoute);
 
 

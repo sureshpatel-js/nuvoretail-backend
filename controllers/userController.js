@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const UserModel = require("../models/userModel");
-const CompanyModel = require("../models/companyModel");
+//const CompanyModel = require("../models/companyModel");
 const BrandModel = require("../models/brandModel");
 const { validateClientAdminSignUp,
     validateCreateClientSideUser,
@@ -51,23 +51,22 @@ exports.clientAdminSignUp = async (req, res, next) => {
             }], { session });
 
             const newUserId = newUser[0]._id;
-            const newCompany = await CompanyModel.create([{
-                company_name,
-                created_by: newUserId,
-            }], { session })
+            // const newCompany = await CompanyModel.create([{
+            //     company_name,
+            //     created_by: newUserId,
+            // }], { session })
 
-            const newCompanyId = newCompany[0]._id;
+
 
             const newBrand = await BrandModel.create([{
                 brand_name,
                 created_by: newUserId,
-                company_id: newCompanyId
             }], { session })
-
+            const newBrandId = newBrand[0]._id;
             const updatedUser = await UserModel.findByIdAndUpdate(
                 newUserId,
                 {
-                    company_id: newCompanyId
+                    brand_id: newBrandId
                 },
                 { session }
             )
@@ -142,23 +141,22 @@ exports.createClientAdmin = async (req, res, next) => {
         }], { session });
 
         const newUserId = newUser[0]._id;
-        const newCompany = await CompanyModel.create([{
-            company_name,
-            created_by: newUserId,
-        }], { session })
+        // const newCompany = await CompanyModel.create([{
+        //     company_name,
+        //     created_by: newUserId,
+        // }], { session })
 
-        const newCompanyId = newCompany[0]._id;
 
         const newBrand = await BrandModel.create([{
             brand_name,
             created_by: newUserId,
-            company_id: newCompanyId
         }], { session })
 
+        const newBrandId = newBrand[0]._id;
         const updatedUser = await UserModel.findByIdAndUpdate(
             newUserId,
             {
-                company_id: newCompanyId
+                brand_id: newBrandId
             },
             { session }
         )

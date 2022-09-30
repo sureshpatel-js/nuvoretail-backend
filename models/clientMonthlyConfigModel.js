@@ -23,10 +23,13 @@ const ClientMonthlyConfigSchema = new Schema({
         type: Date
     },
     created_for_month: {
-        type: Date
+        type: String
     },
     udpdated_at: {
         type: Date
+    },
+    category_wise_sales_and_spend_target: {
+        type: Array
     },
     updated_by: {
         type: Schema.Types.ObjectId

@@ -10,6 +10,7 @@ const BrandSchema = new Schema({
     created_by: {
         type: Schema.Types.ObjectId
     },
+    
     created_at: {
         type: Date
     },

@@ -3,11 +3,11 @@ const clientMonthlyConfigController = require("../controllers/clientMonthlyConfi
 const authController = require("./../controllers/authController");
 const router = express.Router();
 router
-    .route("/")
-    .get(clientMonthlyConfigController.getClientMonthlyConfig);
+    .route("/monthlyBudget")
+    .post(clientMonthlyConfigController.getClientMonthlyConfig);
 router
     .route("/:id?")
-    .post(authController.protectRoute, clientMonthlyConfigController.createClientMonthlyConfig)
+    .post(clientMonthlyConfigController.createClientMonthlyConfig)
     .put(clientMonthlyConfigController.updateClientMonthlyConfig);
 
 

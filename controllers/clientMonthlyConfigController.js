@@ -1,16 +1,17 @@
 const ClientMonthlyConfigModel = require("../models/clientMonthlyConfigModel");
 const { validateClientMonthlyConfig } = require("../validate/validateClientMonthlyConfig");
 const AppError = require("../utils/errorHandling/AppError");
+const ClientDetails = require("../models/clientDetails");
 exports.createClientMonthlyConfig = async (req, res, next) => {
-    const value = await validateClientMonthlyConfig(req.body, "post");
-    if (!value.status) {
-        next(new AppError(400, value.message));
-        return;
-    }
+    // const value = await validateClientMonthlyConfig(req.body, "post");
+    // if (!value.status) {
+    //     next(new AppError(400, value.message));
+    //     return;
+    // }
     try {
-        const authUser = req.user._id;
+        //const authUser = req.user._id;
         const createdAt = new Date();
-        const clientMonthlyConfig = await ClientMonthlyConfigModel.create({ ...req.body, created_by: authUser, created_at: createdAt });
+        const clientMonthlyConfig = await ClientMonthlyConfigModel.create({ ...req.body, /*created_by: authUser,*/ created_at: createdAt });
         res.status(201).json({
             status: "success",
             clientMonthlyConfig
@@ -20,16 +21,16 @@ exports.createClientMonthlyConfig = async (req, res, next) => {
     }
 }
 exports.updateClientMonthlyConfig = async (req, res, next) => {
-    const value = await validateClientMonthlyConfig(req.body, "put");
-    if (!value.status) {
-        return next(new AppError(400, value.message));
-    }
+    // const value = await validateClientMonthlyConfig(req.body, "put");
+    // if (!value.status) {
+    //     return next(new AppError(400, value.message));
+    // }
     //while updating also inclue company id from user for more security
     try {
-        const authUser = req.user._id;
-        const updatedAt = new Date();
-        const clientMonthlyConfig = await ClientMonthlyConfigModel.findByIdAndUpdate(req.params.id, { ...req.body, updated_by: authUser, updated_at: updatedAt }, { new: true });
-        res.status(201).json({
+        // const authUser = req.user._id;
+        // const updatedAt = new Date();
+        const clientMonthlyConfig = await ClientMonthlyConfigModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.status(200).json({
             status: "success",
             data: {
                 clientMonthlyConfig
@@ -42,13 +43,37 @@ exports.updateClientMonthlyConfig = async (req, res, next) => {
 
 
 exports.getClientMonthlyConfig = async (req, res, next) => {
+    const { time_stamp } = req.body;
     try {
-        const clientMonthlyConfig = await ClientMonthlyConfigModel.findOne(req.query);
+        let clientMonthlyConfig = await ClientMonthlyConfigModel.findOne({
+            created_for_month: time_stamp
+        });
+        if (!clientMonthlyConfig) {
+            const clientDetails = await ClientDetails.findOne();
+            const { category } = clientDetails;
+            const category_array = category.map(el => {
+                return {
+                    category: el,
+                    ad_sales: "",
+                    spend: "",
+                    for_month: time_stamp
+                }
+
+            });
+            clientMonthlyConfig = await ClientMonthlyConfigModel.create({
+                category_wise_sales_and_spend_target: category_array,
+                created_for_month: time_stamp
+            })
+
+        }
         res.status(200).json({
             status: "success",
-            clientMonthlyConfig
+            data: {
+                clientMonthlyConfig
+            }
         });
     } catch (error) {
+        console.log(error)
         res.status(404).json({
             status: "fail",
             data: {

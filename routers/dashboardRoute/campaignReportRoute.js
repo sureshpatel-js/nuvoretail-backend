@@ -16,4 +16,12 @@ router
     .route("/getCategoryTableData")
     .post(campaignReportController.getCategoryTableData);
 
+router
+    .route("/getTargetsTableData")
+    .post(campaignReportController.getTargetsTableData);
+
+router
+    .route("/getRemainingTargetsTileData")
+    .post(campaignReportController.getRemainingTargetsTileData);
+
 module.exports = router;    

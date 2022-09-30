@@ -22,6 +22,9 @@ const UserSchema = new Schema({
     company_id: {
         type: Schema.Types.ObjectId
     },
+    brand_id: {
+        type: Schema.Types.ObjectId
+    },
     contact_num: {
         type: String,
     },

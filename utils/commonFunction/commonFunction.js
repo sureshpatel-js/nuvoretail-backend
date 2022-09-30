@@ -52,3 +52,25 @@ exports.getMontheInText = (monthInNumber) => {
     const month = `${monthInNumber}`;
     return monthObj[month];
 }
+
+
+exports.getYesterdayAndFirstDayOfMonth = (time_stamp) => {
+    const yesterday = new Date(time_stamp);
+    yesterday.setDate(yesterday.getDate() - 1);
+    let firstDayOfMonth;
+    if (yesterday.getDate() === 1) {
+        firstDayOfMonth = new Date(yesterday);
+    } else {
+        const date = new Date(yesterday)
+        firstDayOfMonth = new Date(date.setDate(date.getDate() - (date.getDate() - 1)));
+    }
+
+    return { yesterday, firstDayOfMonth }
+}
+exports.getDaysInMonth = (time_stamp) => {
+    const date = new Date(time_stamp)
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    //console.log(year, month)
+    return new Date(year, month, 0).getDate()
+}
