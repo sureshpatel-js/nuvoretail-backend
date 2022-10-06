@@ -19,10 +19,15 @@ exports.createPowerBiConfig = async (req, res, next) => {
 }
 
 exports.getPowerBiDashboardMenuArray = async (req, res, next) => {
+    const { dashboard_category } = req.params;
+    if (!dashboard_category) {
+        next(new AppError(400, "Please provide Dashboard Category in params."));
+
+    }
     try {
         const { brand_id } = req.user;
-        console.log(brand_id)
-        const dashboard_menu_array = await PowerBiConfigModel.find({ brand_id }).select("dashboard_name");
+       
+        const dashboard_menu_array = await PowerBiConfigModel.find({ brand_id, dashboard_category }).select("dashboard_name");
         res.status(200).json({
             status: "success",
             data: {
@@ -238,7 +243,6 @@ exports.getEmbedInfoByGroupAndReportId = async (req, res, next) => {
     // Get the Report Embed details
     try {
         const { group_id, report_id } = req.body;
-        console.log(group_id, report_id)
         // Get report details and embed token
         const embedParams = await getEmbedParamsForSingleReport(group_id, report_id);
 

@@ -3,7 +3,8 @@ const { UNABLE_TO_GET_DATA, UNABLE_TO_UPDATE_DATA } = require("../constants/erro
 const AppError = require("../utils/errorHandling/AppError");
 exports.getClientSellerDetail = async (req, res, next) => {
     try {
-        const seller_data_array = await ClientSellerDetailModel.find();
+        const { brand_id } = req.user;
+        const seller_data_array = await ClientSellerDetailModel.find({ brand_id });
         res.status(200).json({
             status: "success",
             data: {

@@ -9,7 +9,7 @@ router
 router
     .route("/getEmbedInfo/:id").get(authController.protectRoute, authController.restrictTo(CLIENT_ADMIN, ENLYTICAL_ADMIN), powerBiConfigController.getEmbedInfo)
 router
-    .route("/getPowerBiDashboardMenuArray")
+    .route("/getPowerBiDashboardMenuArray/:dashboard_category")
     .get(authController.protectRoute, authController.restrictTo(CLIENT_ADMIN, ENLYTICAL_ADMIN), powerBiConfigController.getPowerBiDashboardMenuArray);
 router
     .route("/getEmbedInfoByGroupAndReportId")

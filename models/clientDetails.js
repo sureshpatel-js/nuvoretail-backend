@@ -3,6 +3,9 @@ const Schema = mongoose.Schema;
 const ClientDetailsSchema = new Schema({
     category: {
         type: Array
+    },
+    brand_id: {
+        type: Schema.Types.ObjectId
     }
 })
 

@@ -6,7 +6,7 @@ const router = express.Router();
 
 router
     .route("/:id?")
-    .get(clientSellerDetailController.getClientSellerDetail)
+    .get(authController.protectRoute,clientSellerDetailController.getClientSellerDetail)
     .put(clientSellerDetailController.updateClientSellerDetail)
 
 

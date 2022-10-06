@@ -45,11 +45,13 @@ exports.updateClientMonthlyConfig = async (req, res, next) => {
 exports.getClientMonthlyConfig = async (req, res, next) => {
     const { time_stamp } = req.body;
     try {
+        const { brand_id } = req.user;
         let clientMonthlyConfig = await ClientMonthlyConfigModel.findOne({
-            created_for_month: time_stamp
+            created_for_month: time_stamp,
+            brand_id
         });
         if (!clientMonthlyConfig) {
-            const clientDetails = await ClientDetails.findOne();
+            const clientDetails = await ClientDetails.findOne({ brand_id });
             const { category } = clientDetails;
             const category_array = category.map(el => {
                 return {
@@ -62,7 +64,8 @@ exports.getClientMonthlyConfig = async (req, res, next) => {
             });
             clientMonthlyConfig = await ClientMonthlyConfigModel.create({
                 category_wise_sales_and_spend_target: category_array,
-                created_for_month: time_stamp
+                created_for_month: time_stamp,
+                brand_id
             })
 
         }

@@ -13,6 +13,9 @@ const PowerBiConfigSchema = new Schema({
     created_by: {
         type: Schema.Types.ObjectId
     },
+    dashboard_category: {
+        type: String
+    },
     brand_id: {
         type: Schema.Types.ObjectId
     },

@@ -13,6 +13,9 @@ const ClientSellerDetailSchema = new Schema({
     },
     seller_type: {
         type: String
+    },
+    brand_id: {
+        type: Schema.Types.ObjectId
     }
 
 });

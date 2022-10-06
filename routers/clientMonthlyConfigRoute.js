@@ -4,7 +4,7 @@ const authController = require("./../controllers/authController");
 const router = express.Router();
 router
     .route("/monthlyBudget")
-    .post(clientMonthlyConfigController.getClientMonthlyConfig);
+    .post( authController.protectRoute ,clientMonthlyConfigController.getClientMonthlyConfig);
 router
     .route("/:id?")
     .post(clientMonthlyConfigController.createClientMonthlyConfig)

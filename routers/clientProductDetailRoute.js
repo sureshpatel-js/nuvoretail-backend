@@ -5,7 +5,7 @@ const router = express.Router();
 
 router
     .route("/:id?")
-    .get(clientProductDetailController.getClientProductDetail)
+    .get(authController.protectRoute, clientProductDetailController.getClientProductDetail)
     .put(clientProductDetailController.updateClientProductDetail)
 //.post(onbordingCrawledDataController.createOnbordingCrawledData);
 

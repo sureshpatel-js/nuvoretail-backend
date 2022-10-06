@@ -57,6 +57,9 @@ const UserSchema = new Schema({
     },
     email_verified: {
         type: Boolean
+    },
+    access: {
+        type: Array
     }
 })
 

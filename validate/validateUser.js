@@ -2,7 +2,8 @@ const Joi = require("joi");
 const { CLIENT_JUNIOR_ADMIN,
     CLIENT_MANAGER,
     INTERNAL_PRODUCT_MANAGER,
-    INTERNAL_MANAGER
+    INTERNAL_MANAGER,
+    INTERNAL_CLIENT_MANAGER
 } = require("../constants/constants")
 
 exports.validateClientAdminSignUp = async (body) => {
@@ -46,11 +47,11 @@ exports.validateCreateClientSideUser = async (body) => {
     }
 };
 
-exports.validateCreateInternaleUser = async (body) => {
+exports.validateCreateInternalUser = async (body) => {
     const schema = Joi.object({
         first_name: Joi.string().required(),
         last_name: Joi.string().required(),
-        user_type: Joi.string().valid(CLIENT_JUNIOR_ADMIN, CLIENT_MANAGER).required(),
+        user_type: Joi.string().valid(CLIENT_JUNIOR_ADMIN, CLIENT_MANAGER, INTERNAL_CLIENT_MANAGER).required(),
         email: Joi.string()
             .required()
             .email({

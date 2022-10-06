@@ -1,13 +1,15 @@
 const ClientProductDetailModel = require("../models/clientProductDetailModel");
 //const KeywordDumpModel = require("../models/keywordDumpModel");
-const { UNABLE_TO_GET_DATA,UNABLE_TO_UPDATE_DATA } = require("../constants/errorMessageConstants/dashboardController")
+const { UNABLE_TO_GET_DATA, UNABLE_TO_UPDATE_DATA } = require("../constants/errorMessageConstants/dashboardController")
 // const { validateOnbordingCrawledData,
 //     validateManyOnbordingCrawledData
 // } = require("../validate/validateOnbordingCrawledData");
 const AppError = require("../utils/errorHandling/AppError");
 exports.getClientProductDetail = async (req, res, next) => {
     try {
-        const product_data_array = await ClientProductDetailModel.find();
+        const { brand_id } = req.user;
+       
+        const product_data_array = await ClientProductDetailModel.find({brand_id});
         res.status(200).json({
             status: "success",
             data: {
@@ -15,6 +17,7 @@ exports.getClientProductDetail = async (req, res, next) => {
             }
         });
     } catch (error) {
+        console.log(error)
         return next(new AppError(400, UNABLE_TO_GET_DATA));
     }
 };
