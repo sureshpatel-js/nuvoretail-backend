@@ -9,9 +9,9 @@ exports.createClientMonthlyConfig = async (req, res, next) => {
     //     return;
     // }
     try {
-        //const authUser = req.user._id;
+        const authUser = req.user._id;
         const createdAt = new Date();
-        const clientMonthlyConfig = await ClientMonthlyConfigModel.create({ ...req.body, /*created_by: authUser,*/ created_at: createdAt });
+        const clientMonthlyConfig = await ClientMonthlyConfigModel.create({ ...req.body, created_by: authUser, created_at: createdAt });
         res.status(201).json({
             status: "success",
             clientMonthlyConfig
@@ -26,10 +26,22 @@ exports.updateClientMonthlyConfig = async (req, res, next) => {
     //     return next(new AppError(400, value.message));
     // }
     //while updating also inclue company id from user for more security
+
     try {
-        // const authUser = req.user._id;
-        // const updatedAt = new Date();
-        const clientMonthlyConfig = await ClientMonthlyConfigModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const authUser = req.user._id;
+        const updatedAt = new Date();
+        const config = await ClientMonthlyConfigModel.findById(req.params.id);
+        if (!config) {
+            return next(new AppError(404, "Unable to find Document with given Id."));
+        }
+        if (new Date(config.created_for_month) < new Date()) {
+            return next(new AppError(400, "You cannot edit."));
+        }
+        const clientMonthlyConfig = await ClientMonthlyConfigModel.findByIdAndUpdate(req.params.id, {
+            ...req.body,
+            updated_by: authUser,
+            updated_at: updatedAt
+        }, { new: true });
         res.status(200).json({
             status: "success",
             data: {
@@ -45,7 +57,8 @@ exports.updateClientMonthlyConfig = async (req, res, next) => {
 exports.getClientMonthlyConfig = async (req, res, next) => {
     const { time_stamp } = req.body;
     try {
-        const { brand_id } = req.user;
+        const { brand_id, _id } = req.user;
+        const createdAt = new Date();
         let clientMonthlyConfig = await ClientMonthlyConfigModel.findOne({
             created_for_month: time_stamp,
             brand_id
@@ -65,7 +78,9 @@ exports.getClientMonthlyConfig = async (req, res, next) => {
             clientMonthlyConfig = await ClientMonthlyConfigModel.create({
                 category_wise_sales_and_spend_target: category_array,
                 created_for_month: time_stamp,
-                brand_id
+                brand_id,
+                created_by: _id,
+                created_at: createdAt
             })
 
         }

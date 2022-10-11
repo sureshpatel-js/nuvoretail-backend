@@ -23,9 +23,9 @@ const ClientMonthlyConfigSchema = new Schema({
         type: Date
     },
     created_for_month: {
-        type: String
+        type: Date
     },
-    udpdated_at: {
+    updated_at: {
         type: Date
     },
     category_wise_sales_and_spend_target: {

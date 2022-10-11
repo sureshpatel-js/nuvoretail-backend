@@ -329,7 +329,7 @@ exports.createInternalUser = async (req, res, next) => {
 
 
 exports.getMyObj = async (req, res, next) => {
-    const { first_name, last_name, user_type, email } = req.user;
+    const { first_name, last_name, user_type, email, access } = req.user;
     res.status(200).json({
         status: "success",
         data: {
@@ -337,7 +337,8 @@ exports.getMyObj = async (req, res, next) => {
                 first_name,
                 last_name,
                 user_type,
-                email
+                email,
+                access
             }
         }
     })

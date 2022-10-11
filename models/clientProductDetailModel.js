@@ -36,6 +36,10 @@ const ClientProductDetailSchema = new Schema({
         default: false
     },
     priority: {
+        type: String,
+        default: "Growth"
+    },
+    image_url: {
         type: String
     }
     // time_stamp: {

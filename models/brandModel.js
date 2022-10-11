@@ -10,12 +10,16 @@ const BrandSchema = new Schema({
     created_by: {
         type: Schema.Types.ObjectId
     },
-    
+
     created_at: {
         type: Date
     },
     updated_at: {
         type: Date
+    },
+    config_edit: {
+        type: Boolean,
+        default: true
     },
 })
 

@@ -1,4 +1,5 @@
 const ClientProductDetailModel = require("../models/clientProductDetailModel");
+const BrandModel = require("../models/brandModel");
 //const KeywordDumpModel = require("../models/keywordDumpModel");
 const { UNABLE_TO_GET_DATA, UNABLE_TO_UPDATE_DATA } = require("../constants/errorMessageConstants/dashboardController")
 // const { validateOnbordingCrawledData,
@@ -8,8 +9,8 @@ const AppError = require("../utils/errorHandling/AppError");
 exports.getClientProductDetail = async (req, res, next) => {
     try {
         const { brand_id } = req.user;
-       
-        const product_data_array = await ClientProductDetailModel.find({brand_id});
+
+        const product_data_array = await ClientProductDetailModel.find({ brand_id });
         res.status(200).json({
             status: "success",
             data: {
@@ -25,6 +26,13 @@ exports.getClientProductDetail = async (req, res, next) => {
 exports.updateClientProductDetail = async (req, res, next) => {
     //Error handling is pending
     try {
+        const brand = await BrandModel.findById(req.user.brand_id).select("config_edit");
+        if (!brand) {
+            return next(new AppError(400, "Unable to find brand with given Id."));
+        }
+        if (!brand.config_edit) {
+            return next(new AppError(400, "You cannot edit."));
+        }
         const product = await ClientProductDetailModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.status(200).json({
             status: "success",
